@@ -1,0 +1,9 @@
+[sip]
+bind_address = "[IP_ADDRESS]"
+bind_port = 5060
+public_address = "[IP_ADDRESS]"
+
+[rtp]
+bind_address = "[IP_ADDRESS]"
+port_min = 40000
+port_max = 41000
