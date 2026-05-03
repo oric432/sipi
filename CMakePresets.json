@@ -44,6 +44,10 @@
     ],
     "buildPresets": [
         {
+            "name": "default",
+            "configurePreset": "debug"
+        },
+        {
             "name": "build-debug",
             "configurePreset": "debug"
         },

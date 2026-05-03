@@ -14,8 +14,8 @@ namespace SIPI {
 
 class Settings {
 public:
-  // Schema and its defaults
-  static constexpr std::string_view kDefaultsToml = R"toml(
+    // Schema and its defaults
+    static constexpr std::string_view kDefaultsToml = R"toml(
         [sip]
         bind_address = "0.0.0.0"
         bind_port = 5060
@@ -31,46 +31,49 @@ public:
 
     )toml";
 
-  struct Path {
-    static constexpr auto kSIP_BIND_ADDRESS = "sip.bind_address";
-    static constexpr auto kSIP_BIND_PORT = "sip.bind_port";
-    static constexpr auto kSIP_PUBLIC_ADDRESS = "sip.public_address";
+    struct Path {
+        static constexpr auto kSIP_BIND_ADDRESS = "sip.bind_address";
+        static constexpr auto kSIP_BIND_PORT = "sip.bind_port";
+        static constexpr auto kSIP_PUBLIC_ADDRESS = "sip.public_address";
 
-    static constexpr auto kRTP_BIND_ADDRESS = "rtp.bind_address";
-    static constexpr auto kRTP_PORT_MIN = "rtp.port_min";
-    static constexpr auto kRTP_PORT_MAX = "rtp.port_max";
+        static constexpr auto kRTP_BIND_ADDRESS = "rtp.bind_address";
+        static constexpr auto kRTP_PORT_MIN = "rtp.port_min";
+        static constexpr auto kRTP_PORT_MAX = "rtp.port_max";
 
-    static constexpr auto kLOG_LEVEL = "logging.level";
-  };
+        static constexpr auto kLOG_LEVEL = "logging.level";
+    };
 
-  static Error::Result<Settings> load(std::string_view file_path);
+    static Error::Result<Settings> load(std::string_view file_path);
 
-  template <typename T> Error::Result<T> try_get(std::string_view path) const {
-    const toml::node_view<const toml::node> node = table_.at_path(path);
-    auto value = node.value<T>();
-    if (!value) {
-      std::ostringstream oss;
-      oss << "Missing or wrong type at '" << path << "'";
-      return std::unexpected(Error::make_error().with_context(oss.str()));
+    template <typename T>
+    Error::Result<T> try_get(std::string_view path) const {
+        const toml::node_view<const toml::node> node = table_.at_path(path);
+        auto value = node.value<T>();
+        if (!value) {
+            std::ostringstream oss;
+            oss << "Missing or wrong type at '" << path << "'";
+            return std::unexpected(Error::make_error().with_context(oss.str()));
+        }
+        return *value;
     }
-    return *value;
-  }
 
-  // Generic getter by TOML path (nested supported via at_path)
-  template <typename T> T get(std::string_view path) const {
-    auto res = try_get<T>(path);
-    ASSERTM(res.has_value(), res ? "" : res.error().what());
-    return *res;
-  }
+    // Generic getter by TOML path (nested supported via at_path)
+    template <typename T>
+    T get(std::string_view path) const {
+        auto res = try_get<T>(path);
+        ASSERTM(res.has_value(), res ? "" : res.error().what());
+        return *res;
+    }
 
-  std::string dump() const;
+    std::string dump() const;
 
 private:
-  explicit Settings(const toml::table &table) : table_(std::move(table)) {}
+    explicit Settings(const toml::table& table)
+        : table_(std::move(table)) {}
 
-  static void merge_into(toml::table &dst, const toml::table &src);
+    static void merge_into(toml::table& dst, const toml::table& src);
 
-  toml::table table_;
+    toml::table table_;
 };
 
 } // namespace SIPI

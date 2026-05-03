@@ -1,6 +1,7 @@
 cmake_minimum_required(VERSION 3.23)
 project(sipi LANGUAGES C CXX)
 
+# Format
 set(CMAKE_CXX_STANDARD 26)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
@@ -48,3 +49,6 @@ target_link_libraries(sipi PRIVATE
     boost_sml
     pjsip_all
 )
+
+include(ClangFormat)
+add_clang_format_target(format ${CMAKE_SOURCE_DIR}/src)
