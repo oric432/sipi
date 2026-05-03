@@ -31,6 +31,8 @@ include(${CMAKE_SOURCE_DIR}/third_party/catch2.cmake)
 add_executable(sipi
     src/main.cpp
     src/Settings.cpp
+    src/SipModule.cpp
+    src/SipEndpoint.cpp
 )
 
 target_precompile_headers(sipi PRIVATE

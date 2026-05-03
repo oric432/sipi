@@ -1,4 +1,5 @@
 #include "Settings.hpp"
+#include "SipEndpoint.hpp"
 #include "utils/log.hpp"
 
 using namespace SIPI;
@@ -11,5 +12,8 @@ int main() {
         Log::crash_error(std::format("Failed to load settings: {}", res.error().what()));
     }
 
-    Log::app()->info("\nSettings loaded successfully:\n{}", res->dump());
+    Log::set_log_level(res->get<std::string>(Settings::Path::kLOG_LEVEL));
+
+    SipEndpoint endpoint{*res};
+    endpoint.run();
 }
