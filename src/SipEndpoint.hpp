@@ -2,6 +2,7 @@
 
 #include <atomic>
 
+#include "CallManager.hpp"
 #include "Settings.hpp"
 #include "SipModule.hpp"
 
@@ -23,7 +24,8 @@ public:
 private:
     pj_caching_pool   cp_{};
     pjsip_endpoint*   endpt_{};
-    SipModule         module_;
+    CallManager       manager_;
+    SipModule         module_;      // constructed after manager_
     std::atomic<bool> quit_{false};
 };
 

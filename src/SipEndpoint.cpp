@@ -3,6 +3,7 @@
 #include <csignal>
 
 #include <pjlib-util.h>
+#include <pjsip_ua.h>
 
 #include "utils/log.hpp"
 
@@ -19,7 +20,9 @@ void on_sigint(int /*sig*/) {
 }
 } // namespace
 
-SipEndpoint::SipEndpoint(const Settings& settings) {
+SipEndpoint::SipEndpoint(const Settings& settings)
+    : module_(manager_)
+{
     if (pj_init() != PJ_SUCCESS) {
         Log::crash_error("pj_init() failed");
     }
@@ -32,6 +35,15 @@ SipEndpoint::SipEndpoint(const Settings& settings) {
 
     if (pjsip_endpt_create(&cp_.factory, nullptr, &endpt_) != PJ_SUCCESS) {
         Log::crash_error("pjsip_endpt_create() failed");
+    }
+
+    if (pjsip_ua_init_module(endpt_, nullptr) != PJ_SUCCESS) {
+        Log::crash_error("pjsip_ua_init_module() failed");
+    }
+
+    auto inv_cb = SipModule::inv_callbacks();
+    if (pjsip_inv_usage_init(endpt_, &inv_cb) != PJ_SUCCESS) {
+        Log::crash_error("pjsip_inv_usage_init() failed");
     }
 
     const auto bind_addr   = settings.get<std::string>(Settings::Path::kSIP_BIND_ADDRESS);

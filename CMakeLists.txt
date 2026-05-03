@@ -33,6 +33,8 @@ add_executable(sipi
     src/Settings.cpp
     src/SipModule.cpp
     src/SipEndpoint.cpp
+    src/CallSession.cpp
+    src/CallManager.cpp
 )
 
 target_precompile_headers(sipi PRIVATE
