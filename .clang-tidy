@@ -12,12 +12,19 @@ Checks: "*,
         -readability-static-accessed-through-instance,
         -readability-avoid-const-params-in-decls,
         -cppcoreguidelines-non-private-member-variables-in-classes,
-        -misc-non-private-member-variables-in-classes"
+        -misc-non-private-member-variables-in-classes,
+        -bugprone-unused-return-value,
+        -bugprone-easily-swappable-parameters,
+        -cert-err33-c"
 WarningsAsErrors: ''
 HeaderFilterRegex: ''
 FormatStyle:     none
 
 CheckOptions:
+  - key: readability-identifier-length.MinimumVariableNameLength
+    value: 2
+  - key: readability-identifier-length.MinimumParameterNameLength
+    value: 2
   # - key: readability-identifier-length.IgnoredVariableNames
   #   value: 'x|y|z'
   # - key: readability-identifier-length.IgnoredParameterNames
