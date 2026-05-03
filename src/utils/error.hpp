@@ -1,5 +1,6 @@
 #pragma once
 
+#include <array>
 #include <cstddef>
 #include <expected>
 #include <format>
@@ -32,7 +33,8 @@ inline std::string pretty_function(std::string_view fn_full) {
         str = trim(str.substr(0, paren));
     }
 
-    constexpr std::string_view kCvs[] = {"__cdecl", "__thiscall", "__stdcall", "__vectorcall", "__fastcall"};
+    constexpr std::array<std::string_view, 5> kCvs =
+        {"__cdecl", "__thiscall", "__stdcall", "__vectorcall", "__fastcall"};
 
     for (auto ccs : kCvs) {
         if (auto pres = str.rfind(ccs); pres != std::string_view::npos) {
@@ -71,7 +73,7 @@ inline std::string short_file_line(const std::source_location& loc) {
 
 class Error {
 public:
-    Error(std::source_location location = std::source_location::current())
+    explicit Error(std::source_location location = std::source_location::current())
         : location_(location) {}
 
     [[nodiscard]] const std::source_location& location() const noexcept { return location_; }

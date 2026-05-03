@@ -9,6 +9,7 @@
 #include <sstream>
 #include <string>
 #include <string_view>
+#include <utility>
 
 namespace SIPI {
 
@@ -65,10 +66,10 @@ public:
         return *res;
     }
 
-    std::string dump() const;
+    [[nodiscard]] std::string dump() const;
 
 private:
-    explicit Settings(const toml::table& table)
+    explicit Settings(toml::table table)
         : table_(std::move(table)) {}
 
     static void merge_into(toml::table& dst, const toml::table& src);
