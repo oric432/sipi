@@ -1,6 +1,8 @@
 add_executable(sipi_tests
     test_sdp_negotiator.cpp
+    test_rtp_session.cpp
     ${CMAKE_SOURCE_DIR}/src/SdpNegotiator.cpp
+    ${CMAKE_SOURCE_DIR}/src/RtpSession.cpp
 )
 
 target_include_directories(sipi_tests PRIVATE
@@ -10,6 +12,8 @@ target_include_directories(sipi_tests PRIVATE
 target_link_libraries(sipi_tests PRIVATE
     Catch2::Catch2WithMain
     pjsip_all
+    Boost::asio
+    Boost::system
     project_warnings
     project_options
 )
