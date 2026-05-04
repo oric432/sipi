@@ -1,6 +1,9 @@
 #pragma once
 
 #include <atomic>
+#include <thread>
+
+#include <boost/asio/io_context.hpp>
 
 #include "CallManager.hpp"
 #include "Settings.hpp"
@@ -22,11 +25,14 @@ public:
     void stop();
 
 private:
-    pj_caching_pool   cp_{};
-    pjsip_endpoint*   endpt_{};
-    CallManager       manager_;
-    SipModule         module_;      // constructed after manager_
-    std::atomic<bool> quit_{false};
+    boost::asio::io_context ioc_;
+    const Settings&         settings_;
+    pj_caching_pool         cp_{};
+    pjsip_endpoint*         endpt_{};
+    CallManager             manager_;
+    SipModule               module_;
+    std::thread             asio_thread_;
+    std::atomic<bool>       quit_{false};
 };
 
 } // namespace SIPI

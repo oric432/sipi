@@ -17,15 +17,21 @@ CallManager* g_call_manager = nullptr;
 pjsip_module* g_pjmodule = nullptr;
 
 void on_inv_state_changed(pjsip_inv_session* inv, pjsip_event* /*e*/) {
-    if (inv->state != PJSIP_INV_STATE_DISCONNECTED) {
-        return;
-    }
     if (g_call_manager == nullptr || g_pjmodule == nullptr || g_pjmodule->id < 0) {
         return;
     }
     // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-constant-array-index)
     auto* session = static_cast<CallSession*>(inv->mod_data[g_pjmodule->id]);
-    if (session != nullptr) {
+    if (session == nullptr) {
+        return;
+    }
+
+    if (inv->state == PJSIP_INV_STATE_CONFIRMED) {
+        session->dispatch(AckReceived{});
+        return;
+    }
+
+    if (inv->state == PJSIP_INV_STATE_DISCONNECTED) {
         // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-constant-array-index)
         inv->mod_data[g_pjmodule->id] = nullptr;
         g_call_manager->remove(session->call_id());
@@ -55,6 +61,32 @@ pjsip_inv_callback SipModule::inv_callbacks() {
 pj_bool_t SipModule::on_rx_request(pjsip_rx_data* rdata) {
     // NOLINTNEXTLINE(cppcoreguidelines-pro-type-union-access)
     const pjsip_method& method = rdata->msg_info.msg->line.req.method;
+
+    // BYE request: dispatch to session if exists
+    if (pjsip_method_cmp(&method, &pjsip_bye_method) == 0) {
+        if (g_call_manager != nullptr && g_pjmodule != nullptr) {
+            std::string call_id(rdata->msg_info.cid->id.ptr,
+                               static_cast<std::size_t>(rdata->msg_info.cid->id.slen));
+            if (auto* session = g_call_manager->find(call_id)) {
+                session->dispatch(ByeReceived{});
+            }
+        }
+        return PJ_FALSE;
+    }
+
+    // CANCEL request: dispatch to session if exists
+    if (pjsip_method_cmp(&method, &pjsip_cancel_method) == 0) {
+        if (g_call_manager != nullptr && g_pjmodule != nullptr) {
+            std::string call_id(rdata->msg_info.cid->id.ptr,
+                               static_cast<std::size_t>(rdata->msg_info.cid->id.slen));
+            if (auto* session = g_call_manager->find(call_id)) {
+                session->dispatch(CancelReceived{});
+            }
+        }
+        return PJ_FALSE;
+    }
+
+    // Only INVITE creates a new session
     if (pjsip_method_cmp(&method, &pjsip_invite_method) != 0) {
         return PJ_FALSE;
     }

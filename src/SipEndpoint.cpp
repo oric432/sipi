@@ -21,7 +21,9 @@ void on_sigint(int /*sig*/) {
 } // namespace
 
 SipEndpoint::SipEndpoint(const Settings& settings)
-    : module_(manager_)
+    : settings_(settings)
+    , manager_(ioc_, settings_)
+    , module_(manager_)
 {
     if (pj_init() != PJ_SUCCESS) {
         Log::crash_error("pj_init() failed");
@@ -69,6 +71,10 @@ SipEndpoint::SipEndpoint(const Settings& settings)
 }
 
 SipEndpoint::~SipEndpoint() {
+    stop();
+    if (asio_thread_.joinable()) {
+        asio_thread_.join();
+    }
     if (endpt_ != nullptr) {
         pjsip_endpt_destroy(endpt_);
         endpt_ = nullptr;
@@ -83,6 +89,8 @@ void SipEndpoint::run() {
         Log::crash_error("std::signal() failed");
     }
 
+    asio_thread_ = std::thread([this] { ioc_.run(); });
+
     Log::app()->info("SIP endpoint ready");
 
     static constexpr long kEventPollMs = 500;
@@ -96,6 +104,7 @@ void SipEndpoint::run() {
 
 void SipEndpoint::stop() {
     quit_.store(true, std::memory_order_relaxed);
+    ioc_.stop();
 }
 
 } // namespace SIPI
