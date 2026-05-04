@@ -17,25 +17,33 @@ CallManager* g_call_manager = nullptr;
 pjsip_module* g_pjmodule = nullptr;
 
 void on_inv_state_changed(pjsip_inv_session* inv, pjsip_event* e) {
+    Log::app()->info("=== on_inv_state_changed, state={} ===", static_cast<int>(inv->state));
+
     if (g_call_manager == nullptr || g_pjmodule == nullptr || g_pjmodule->id < 0) {
+        Log::app()->warn("on_inv_state_changed: manager/module not ready");
         return;
     }
 
     // For incoming INVITE, create a new session
     if (inv->state == PJSIP_INV_STATE_INCOMING) {
+        Log::app()->info("=== INCOMING state, creating session ===");
         // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-constant-array-index)
         if (inv->mod_data[g_pjmodule->id] != nullptr) {
+            Log::app()->info("=== session already exists ===");
             return;  // Already created
         }
 
         // Get rdata from the event
         if (e == nullptr || e->type != PJSIP_EVENT_RX_MSG) {
+            Log::app()->warn("=== invalid event ===");
             return;
         }
         pjsip_rx_data* rdata = e->body.rx_msg.rdata;
 
         // Create the session
+        Log::app()->info("=== dispatching InviteReceived ===");
         g_call_manager->dispatch(InviteReceived{.inv_ = inv, .rdata_ = rdata}, g_pjmodule->id);
+        Log::app()->info("=== InviteReceived dispatched ===");
         return;
     }
 
@@ -82,12 +90,7 @@ pj_bool_t SipModule::on_rx_request(pjsip_rx_data* rdata) {
     // NOLINTNEXTLINE(cppcoreguidelines-pro-type-union-access)
     const pjsip_method& method = rdata->msg_info.msg->line.req.method;
 
-    // INVITE: let the inv layer handle it (return PJ_TRUE to indicate we'll handle it)
-    if (method.id == PJSIP_INVITE_METHOD) {
-        return PJ_TRUE;
-    }
-
-    // BYE request: dispatch to session if exists
+    // BYE: dispatch to existing session
     if (method.id == PJSIP_BYE_METHOD) {
         if (g_call_manager != nullptr && g_pjmodule != nullptr) {
             std::string call_id(rdata->msg_info.cid->id.ptr,
@@ -99,7 +102,7 @@ pj_bool_t SipModule::on_rx_request(pjsip_rx_data* rdata) {
         return PJ_FALSE;
     }
 
-    // CANCEL request: dispatch to session if exists
+    // CANCEL: dispatch to existing session
     if (method.id == PJSIP_CANCEL_METHOD) {
         if (g_call_manager != nullptr && g_pjmodule != nullptr) {
             std::string call_id(rdata->msg_info.cid->id.ptr,
@@ -111,7 +114,8 @@ pj_bool_t SipModule::on_rx_request(pjsip_rx_data* rdata) {
         return PJ_FALSE;
     }
 
-    // Don't handle other requests
+    // INVITE: defer to PJSIP inv layer
+    // TODO: Integrate with inv layer or use PJSUA for automatic INVITE handling
     return PJ_FALSE;
 }
 
