@@ -11,8 +11,9 @@ CallSession::CallSession(const InviteReceived& event, boost::asio::io_context& i
     , ctx_(event, ioc, settings)
     , sm_(static_cast<ICallContext&>(ctx_))
 {
-    Log::app()->debug("[{}] CallSession created", call_id_);
+    Log::app()->debug("[{}] CallSession created, about to process event", call_id_);
     sm_.process_event(event);
+    Log::app()->debug("[{}] CallSession event processed", call_id_);
 }
 
 } // namespace SIPI
