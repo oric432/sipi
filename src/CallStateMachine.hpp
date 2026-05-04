@@ -6,11 +6,9 @@
 
 #include "Events.hpp"
 #include "ICallContext.hpp"
+#include "SipStatusCodes.hpp"
 
 namespace SIPI {
-
-static constexpr int kSipNotAcceptableHere = 488;
-static constexpr int kSipInternalError     = 500;
 
 struct Idle {};
 struct IncomingInvite {};
