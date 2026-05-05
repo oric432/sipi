@@ -2,6 +2,7 @@
 
 #include <csignal>
 
+#include <pj/log.h>
 #include <pjlib-util.h>
 #include <pjsip/sip_transaction.h>
 #include <pjsip_ua.h>
@@ -28,6 +29,8 @@ SipEndpoint::SipEndpoint(const Settings& settings)
     if (pj_init() != PJ_SUCCESS) {
         Log::crash_error("pj_init() failed");
     }
+
+    pj_log_set_level(static_cast<int>(settings.get<int64_t>(Settings::Path::kLOG_PJSIP_LEVEL)));
 
     if (pjlib_util_init() != PJ_SUCCESS) {
         Log::crash_error("pjlib_util_init() failed");

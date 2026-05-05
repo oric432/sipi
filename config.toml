@@ -7,3 +7,7 @@ public_address = "127.0.0.1"
 bind_address = "0.0.0.0"
 port_min = 40000
 port_max = 41000
+
+[logging]
+level = "debug"
+pjsip_level = 5

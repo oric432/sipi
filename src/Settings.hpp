@@ -29,6 +29,7 @@ public:
 
         [logging]
         level = "info"
+        pjsip_level = 0   # PJSIP log verbosity: 0=off, 1=fatal, 2=error, 3=warning, 4=info, 5=debug, 6=trace
 
     )toml";
 
@@ -42,6 +43,7 @@ public:
         static constexpr auto kRTP_PORT_MAX = "rtp.port_max";
 
         static constexpr auto kLOG_LEVEL = "logging.level";
+        static constexpr auto kLOG_PJSIP_LEVEL = "logging.pjsip_level";
     };
 
     static Error::Result<Settings> load(std::string_view file_path);

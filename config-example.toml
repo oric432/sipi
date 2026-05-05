@@ -7,3 +7,7 @@ public_address = "[IP_ADDRESS]"
 bind_address = "[IP_ADDRESS]"
 port_min = 40000
 port_max = 41000
+
+[logging]
+level = "debug"
+pjsip_level = 5 # 0 - none, 1 - error, 2 - warning, 3 - info, 4 - debug, 5 - trace
