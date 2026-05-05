@@ -64,7 +64,9 @@ void SipModule::on_inv_state_changed(pjsip_inv_session* inv, pjsip_event* /* ev 
     }
 
     if (inv->state == PJSIP_INV_STATE_DISCONNECTED) {
-        Log::sip()->info("[{}] call terminated", session->call_id());
+        Log::sip()->info("[{}] call terminated (BYE or timeout)", session->call_id());
+        // Dispatch BYE to state machine so it can transition out cleanly
+        session->dispatch(ByeReceived{});
         // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-constant-array-index)
         inv->mod_data[self.mod_.id] = nullptr;
         self.manager_.remove(session->call_id());
@@ -74,6 +76,7 @@ void SipModule::on_inv_state_changed(pjsip_inv_session* inv, pjsip_event* /* ev 
 void SipModule::on_inv_media_update(pjsip_inv_session* /*inv*/, pj_status_t /*status*/) {}
 
 pj_bool_t SipModule::on_rx_request(pjsip_rx_data* rdata) {
+    Log::sip()->debug("on_rx_request called for method: {}", rdata->msg_info.msg->line.req.method.name.ptr);
     if (g_module == nullptr) {
         return PJ_FALSE;
     }
