@@ -33,7 +33,7 @@ void on_inv_state_changed(pjsip_inv_session* inv, pjsip_event* e) {
         // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-constant-array-index)
         if (inv->mod_data[g_pjmodule->id] != nullptr) {
             Log::app()->info("=== session already exists ===");
-            return;  // Already created
+            return; // Already created
         }
 
         // Get rdata from the event
@@ -74,11 +74,11 @@ void on_inv_media_update(pjsip_inv_session* /*inv*/, pj_status_t /*status*/) {}
 
 SipModule::SipModule(CallManager& manager) {
     g_call_manager = &manager;
-    g_pjmodule     = &mod_;
+    g_pjmodule = &mod_;
 
-    mod_.name          = {.ptr = name_.data(), .slen = static_cast<pj_ssize_t>(name_.size())};
-    mod_.id            = -1;
-    mod_.priority      = PJSIP_MOD_PRIORITY_APPLICATION;
+    mod_.name = {.ptr = name_.data(), .slen = static_cast<pj_ssize_t>(name_.size())};
+    mod_.id = -1;
+    mod_.priority = PJSIP_MOD_PRIORITY_APPLICATION;
     mod_.on_rx_request = &SipModule::on_rx_request;
 }
 
@@ -89,7 +89,7 @@ void SipModule::set_endpoint(pjsip_endpoint* endpt) {
 pjsip_inv_callback SipModule::inv_callbacks() {
     pjsip_inv_callback cb{};
     cb.on_state_changed = &on_inv_state_changed;
-    cb.on_media_update  = &on_inv_media_update;
+    cb.on_media_update = &on_inv_media_update;
     return cb;
 }
 
@@ -104,9 +104,9 @@ pj_bool_t SipModule::on_rx_request(pjsip_rx_data* rdata) {
             return PJ_FALSE;
         }
 
-        pjsip_dialog*      dlg = nullptr;
+        pjsip_dialog* dlg = nullptr;
         pjsip_inv_session* inv = nullptr;
-        pj_status_t        status = PJ_SUCCESS;
+        pj_status_t status = PJ_SUCCESS;
 
         status = pjsip_dlg_create_uas_and_inc_lock(pjsip_ua_instance(), rdata, nullptr, &dlg);
         if (status != PJ_SUCCESS) {
@@ -115,6 +115,7 @@ pj_bool_t SipModule::on_rx_request(pjsip_rx_data* rdata) {
             pjsip_endpt_respond_stateless(g_endpoint, rdata, kServerError, nullptr, nullptr, nullptr);
             return PJ_TRUE;
         }
+        pjsip_dlg_dec_lock(dlg);
 
         status = pjsip_inv_create_uas(dlg, rdata, nullptr, 0, &inv);
         if (status != PJ_SUCCESS) {
@@ -133,8 +134,7 @@ pj_bool_t SipModule::on_rx_request(pjsip_rx_data* rdata) {
     // BYE: dispatch to existing session
     if (method.id == PJSIP_BYE_METHOD) {
         if (g_call_manager != nullptr && g_pjmodule != nullptr) {
-            std::string call_id(rdata->msg_info.cid->id.ptr,
-                               static_cast<std::size_t>(rdata->msg_info.cid->id.slen));
+            std::string call_id(rdata->msg_info.cid->id.ptr, static_cast<std::size_t>(rdata->msg_info.cid->id.slen));
             if (auto* session = g_call_manager->find(call_id)) {
                 session->dispatch(ByeReceived{});
             }
@@ -145,8 +145,7 @@ pj_bool_t SipModule::on_rx_request(pjsip_rx_data* rdata) {
     // CANCEL: dispatch to existing session
     if (method.id == PJSIP_CANCEL_METHOD) {
         if (g_call_manager != nullptr && g_pjmodule != nullptr) {
-            std::string call_id(rdata->msg_info.cid->id.ptr,
-                               static_cast<std::size_t>(rdata->msg_info.cid->id.slen));
+            std::string call_id(rdata->msg_info.cid->id.ptr, static_cast<std::size_t>(rdata->msg_info.cid->id.slen));
             if (auto* session = g_call_manager->find(call_id)) {
                 session->dispatch(CancelReceived{});
             }
