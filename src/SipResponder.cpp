@@ -28,8 +28,18 @@ void answer_and_send(pjsip_inv_session* inv, int code, const pjmedia_sdp_session
 
 } // namespace
 
-void SipResponder::send_trying(pjsip_inv_session* inv) {
-    answer_and_send(inv, kSipTrying, nullptr);
+void SipResponder::send_trying(pjsip_inv_session* inv, pjsip_rx_data* rdata) {
+    pjsip_tx_data* tdata = nullptr;
+    if (pjsip_inv_initial_answer(inv, rdata, kSipTrying, nullptr, nullptr, &tdata) != PJ_SUCCESS ||
+        tdata == nullptr) {
+        Log::app()->warn("SipResponder: inv_initial_answer({}) failed", kSipTrying);
+        return;
+    }
+    if (pjsip_inv_send_msg(inv, tdata) != PJ_SUCCESS) {
+        Log::app()->warn("SipResponder: send_msg({}) failed", kSipTrying);
+        return;
+    }
+    Log::app()->debug("SipResponder: sent {}", kSipTrying);
 }
 
 void SipResponder::send_ringing(pjsip_inv_session* inv) {

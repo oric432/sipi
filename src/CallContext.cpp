@@ -11,6 +11,7 @@ namespace SIPI {
 CallContext::CallContext(const InviteReceived& ev, boost::asio::io_context& ioc,
                          const Settings& settings)
     : inv_(ev.inv_)
+    , initial_rdata_(ev.rdata_)
     , call_id_(ev.rdata_->msg_info.cid->id.ptr,
                static_cast<std::size_t>(ev.rdata_->msg_info.cid->id.slen))
     , negotiator_(ev.inv_->dlg->pool)
@@ -23,7 +24,7 @@ CallContext::CallContext(const InviteReceived& ev, boost::asio::io_context& ioc,
 }
 
 void CallContext::send_trying() {
-    SipResponder::send_trying(inv_);
+    SipResponder::send_trying(inv_, initial_rdata_);
 }
 
 std::optional<SdpParsed> CallContext::parse_sdp(std::string_view sdp_body) {

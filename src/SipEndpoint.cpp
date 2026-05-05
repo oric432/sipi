@@ -3,6 +3,7 @@
 #include <csignal>
 
 #include <pjlib-util.h>
+#include <pjsip/sip_transaction.h>
 #include <pjsip_ua.h>
 
 #include "utils/log.hpp"
@@ -40,6 +41,10 @@ SipEndpoint::SipEndpoint(const Settings& settings)
     }
 
     module_.set_endpoint(endpt_);
+
+    if (pjsip_tsx_layer_init_module(endpt_) != PJ_SUCCESS) {
+        Log::crash_error("pjsip_tsx_layer_init_module() failed");
+    }
 
     if (pjsip_ua_init_module(endpt_, nullptr) != PJ_SUCCESS) {
         Log::crash_error("pjsip_ua_init_module() failed");
