@@ -119,6 +119,10 @@ pj_bool_t SipModule::on_rx_request(pjsip_rx_data* rdata) {
         return PJ_FALSE;
     }
 
+    // Can also check for URI duplication here, but based on SIP rules same URI is not a requirement for a new call
+    // it generates a new call id for each call even if the URI is the same
+    // TODO: check if necessary to check for URI duplication here
+
     unsigned options = 0;
     pjsip_tx_data* verify_response = nullptr;
 
