@@ -13,7 +13,7 @@ using namespace SIPI;
 
 namespace {
 
-struct MockCallContext : ICallContext {
+struct MockCallContext {
     std::optional<SdpParsed> sdp_result_{
         SdpParsed{.remote_ip_ = "1.2.3.4", .remote_port_ = 20000, .has_audio_ = true, .supports_pcma_ = true}};
     bool rtp_result_{true};
@@ -26,28 +26,28 @@ struct MockCallContext : ICallContext {
     int close_count_{};
     int bye_ok_count_{};
 
-    void send_trying() override { ++trying_count_; }
+    void send_trying() { ++trying_count_; }
 
-    std::optional<SdpParsed> parse_sdp(std::string_view /*body*/) override { return sdp_result_; }
+    std::optional<SdpParsed> parse_sdp(std::string_view /*body*/) { return sdp_result_; }
 
-    bool open_rtp() override { return rtp_result_; }
-    void send_ringing() override { ++ringing_count_; }
-    void send_ok() override { ++ok_count_; }
+    bool open_rtp() { return rtp_result_; }
+    void send_ringing() { ++ringing_count_; }
+    void send_ok() { ++ok_count_; }
 
-    void send_reject(int code) override {
+    void send_reject(int code) {
         ++reject_count_;
         last_reject_code_ = code;
     }
 
-    void close_rtp() override { ++close_count_; }
-    void send_bye_ok() override { ++bye_ok_count_; }
+    void close_rtp() { ++close_count_; }
+    void send_bye_ok() { ++bye_ok_count_; }
 };
 
 // Non-null but never-dereferenced pointer satisfies the is_valid_invite guard.
 // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast,performance-no-int-to-ptr,cppcoreguidelines-avoid-non-const-global-variables)
 pjsip_inv_session* const kFakeInv = reinterpret_cast<pjsip_inv_session*>(static_cast<uintptr_t>(1));
 
-using SM = sm<CallStateMachine, process_queue<std::queue>>;
+using SM = sm<CallStateMachine<MockCallContext>, process_queue<std::queue>>;
 
 // Catch2's expression decomposer cannot handle template args (< >) inside macros.
 // Use type aliases so that CHECK/REQUIRE see plain type names with no angle brackets.
@@ -62,8 +62,7 @@ constexpr uint16_t kRemotePort = 20000;
 
 TEST_CASE("happy path: INVITE → Answered → Confirmed → BYE → X", "[csm]") {
     MockCallContext ctx;
-    ICallContext&   ref = ctx;
-    SM              smach{ref};
+    SM              smach{ctx};
 
     REQUIRE(smach.is(InIdle{}));
 
@@ -86,8 +85,7 @@ TEST_CASE("happy path: INVITE → Answered → Confirmed → BYE → X", "[csm]"
 TEST_CASE("SDP parse failure → Failed with 488", "[csm]") {
     MockCallContext ctx;
     ctx.sdp_result_ = std::nullopt;
-    ICallContext& ref = ctx;
-    SM            smach{ref};
+    SM            smach{ctx};
 
     smach.process_event(InviteReceived{.inv_ = kFakeInv, .rdata_ = nullptr});
     CHECK(smach.is(InFailed{}));
@@ -99,8 +97,7 @@ TEST_CASE("SDP with no audio → Failed with 488", "[csm]") {
     MockCallContext ctx;
     ctx.sdp_result_ = SdpParsed{
         .remote_ip_ = "1.2.3.4", .remote_port_ = kRemotePort, .has_audio_ = false, .supports_pcma_ = true};
-    ICallContext& ref = ctx;
-    SM            smach{ref};
+    SM            smach{ctx};
 
     smach.process_event(InviteReceived{.inv_ = kFakeInv, .rdata_ = nullptr});
     CHECK(smach.is(InFailed{}));
@@ -111,8 +108,7 @@ TEST_CASE("SDP with no PCMA → Failed with 488", "[csm]") {
     MockCallContext ctx;
     ctx.sdp_result_ = SdpParsed{
         .remote_ip_ = "1.2.3.4", .remote_port_ = kRemotePort, .has_audio_ = true, .supports_pcma_ = false};
-    ICallContext& ref = ctx;
-    SM            smach{ref};
+    SM            smach{ctx};
 
     smach.process_event(InviteReceived{.inv_ = kFakeInv, .rdata_ = nullptr});
     CHECK(smach.is(InFailed{}));
@@ -122,8 +118,7 @@ TEST_CASE("SDP with no PCMA → Failed with 488", "[csm]") {
 TEST_CASE("RTP open failure → Failed with 500", "[csm]") {
     MockCallContext ctx;
     ctx.rtp_result_ = false;
-    ICallContext& ref = ctx;
-    SM            smach{ref};
+    SM            smach{ctx};
 
     smach.process_event(InviteReceived{.inv_ = kFakeInv, .rdata_ = nullptr});
     CHECK(smach.is(InFailed{}));
@@ -132,8 +127,7 @@ TEST_CASE("RTP open failure → Failed with 500", "[csm]") {
 
 TEST_CASE("CANCEL in Answered → X", "[csm]") {
     MockCallContext ctx;
-    ICallContext&   ref = ctx;
-    SM              smach{ref};
+    SM              smach{ctx};
 
     smach.process_event(InviteReceived{.inv_ = kFakeInv, .rdata_ = nullptr});
     REQUIRE(smach.is(InAnswered{}));
@@ -145,8 +139,7 @@ TEST_CASE("CANCEL in Answered → X", "[csm]") {
 
 TEST_CASE("CANCEL in Confirmed → X", "[csm]") {
     MockCallContext ctx;
-    ICallContext&   ref = ctx;
-    SM              smach{ref};
+    SM              smach{ctx};
 
     smach.process_event(InviteReceived{.inv_ = kFakeInv, .rdata_ = nullptr});
     smach.process_event(AckReceived{});
@@ -159,8 +152,7 @@ TEST_CASE("CANCEL in Confirmed → X", "[csm]") {
 
 TEST_CASE("null inv pointer stays in Idle", "[csm]") {
     MockCallContext ctx;
-    ICallContext&   ref = ctx;
-    SM              smach{ref};
+    SM              smach{ctx};
 
     smach.process_event(InviteReceived{.inv_ = nullptr, .rdata_ = nullptr});
     CHECK(smach.is(InIdle{}));

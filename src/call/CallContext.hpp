@@ -4,25 +4,25 @@
 
 #include <boost/asio/io_context.hpp>
 
-#include "ICallContext.hpp"
+#include "Events.hpp"
 #include "RtpSession.hpp"
 #include "SdpNegotiator.hpp"
 #include "Settings.hpp"
 
 namespace SIPI {
 
-class CallContext : public ICallContext {
+class CallContext {
 public:
     explicit CallContext(const InviteReceived& ev, boost::asio::io_context& ioc, const Settings& settings);
 
-    void send_trying() override;
-    std::optional<SdpParsed> parse_sdp(std::string_view sdp_body) override;
-    bool open_rtp() override;
-    void send_ringing() override;
-    void send_ok() override;
-    void send_reject(int code) override;
-    void close_rtp() override;
-    void send_bye_ok() override;
+    void send_trying();
+    std::optional<SdpParsed> parse_sdp(std::string_view sdp_body);
+    bool open_rtp();
+    void send_ringing();
+    void send_ok();
+    void send_reject(int code);
+    void close_rtp();
+    void send_bye_ok();
 
 private:
     pjsip_inv_session* inv_;

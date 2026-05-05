@@ -33,7 +33,7 @@ public:
 private:
     std::string call_id_;
     CallContext ctx_;
-    boost::sml::sm<CallStateMachine, boost::sml::process_queue<std::queue>> sm_;
+    boost::sml::sm<CallStateMachine<CallContext>, boost::sml::process_queue<std::queue>> sm_;
 };
 
 } // namespace SIPI

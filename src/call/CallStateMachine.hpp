@@ -5,7 +5,6 @@
 #include <boost/sml.hpp>
 
 #include "Events.hpp"
-#include "ICallContext.hpp"
 #include "SipStatusCodes.hpp"
 
 namespace SIPI {
@@ -18,6 +17,7 @@ struct Confirmed {};
 struct Terminating {};
 struct Failed {};
 
+template <typename TContext>
 struct CallStateMachine {
     auto operator()() const noexcept {
         using namespace boost::sml;
@@ -29,7 +29,7 @@ struct CallStateMachine {
 
         // Actions
         auto invite_action =
-            [](const InviteReceived& ev, ICallContext& ctx, back::process<SdpParsed, SdpRejected> process) {
+            [](const InviteReceived& ev, TContext& ctx, back::process<SdpParsed, SdpRejected> process) {
                 ctx.send_trying();
                 std::string_view sdp_body;
                 // NOLINTNEXTLINE(cppcoreguidelines-pro-type-union-access)
@@ -46,7 +46,7 @@ struct CallStateMachine {
                 }
             };
 
-        auto open_rtp_action = [](ICallContext& ctx, back::process<RtpReady, TransportError> process) {
+        auto open_rtp_action = [](TContext& ctx, back::process<RtpReady, TransportError> process) {
             if (ctx.open_rtp()) {
                 process(RtpReady{});
             }
@@ -55,21 +55,21 @@ struct CallStateMachine {
             }
         };
 
-        auto answer_action = [](ICallContext& ctx) {
+        auto answer_action = [](TContext& ctx) {
             ctx.send_ringing();
             ctx.send_ok();
         };
 
-        auto reject_action = [](ICallContext& ctx) { ctx.send_reject(kSipNotAcceptableHere); };
+        auto reject_action = [](TContext& ctx) { ctx.send_reject(kSipNotAcceptableHere); };
 
-        auto reject_transport_action = [](ICallContext& ctx) { ctx.send_reject(kSipInternalError); };
+        auto reject_transport_action = [](TContext& ctx) { ctx.send_reject(kSipInternalError); };
 
-        auto bye_action = [](ICallContext& ctx) {
+        auto bye_action = [](TContext& ctx) {
             ctx.close_rtp();
             ctx.send_bye_ok();
         };
 
-        auto cancel_action = [](ICallContext& ctx) { ctx.close_rtp(); };
+        auto cancel_action = [](TContext& ctx) { ctx.close_rtp(); };
 
         // clang-format off
         return make_transition_table(
