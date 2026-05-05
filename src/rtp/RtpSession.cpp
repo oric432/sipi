@@ -44,6 +44,8 @@ uint16_t RtpSession::port() const {
 }
 
 void RtpSession::start_receive() {
+    // Async RTP packet receive loop: each completion handler re-arms itself for the next packet.
+    // Runs on the Asio thread; errors are silently dropped (network noise, closed socket).
     socket_->async_receive_from(
         boost::asio::buffer(recv_buf_),
         remote_ep_,

@@ -7,7 +7,8 @@ SdpNegotiator::SdpNegotiator(pj_pool_t* pool)
     : pool_{pool} {}
 
 Error::Result<RemoteSdp> SdpNegotiator::parse_remote(std::string_view sdp) {
-    // pjmedia_sdp_parse tokenises the buffer in-place — must be mutable
+    // pjmedia_sdp_parse tokenises the buffer in-place — must be mutable.
+    // Validates audio section exists and offers PCMA (payload 8).
     std::string mutable_sdp{sdp};
     pjmedia_sdp_session* session{};
 

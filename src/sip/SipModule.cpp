@@ -58,11 +58,13 @@ void SipModule::on_inv_state_changed(pjsip_inv_session* inv, pjsip_event* /* ev 
     }
 
     if (inv->state == PJSIP_INV_STATE_CONFIRMED) {
+        Log::sip()->debug("[{}] INVITE confirmed (ACK received)", session->call_id());
         session->dispatch(AckReceived{});
         return;
     }
 
     if (inv->state == PJSIP_INV_STATE_DISCONNECTED) {
+        Log::sip()->info("[{}] call terminated", session->call_id());
         // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-constant-array-index)
         inv->mod_data[self.mod_.id] = nullptr;
         self.manager_.remove(session->call_id());
@@ -87,29 +89,29 @@ pj_bool_t SipModule::on_rx_request(pjsip_rx_data* rdata) {
         }
 
         if (self.mod_.id < 0 || self.endpoint_ == nullptr) {
-            Log::sip()->warn("on_rx_request(INVITE): module not ready");
+            Log::sip()->warn("INVITE received but module not ready");
             return PJ_FALSE;
         }
 
-        // check if call already exists
         const std::string call_id(rdata->msg_info.cid->id.ptr, static_cast<std::size_t>(rdata->msg_info.cid->id.slen));
+        Log::sip()->debug("[{}] INVITE received", call_id);
+
         if (self.manager_.find(call_id) != nullptr) {
-            Log::sip()->debug("[{}] duplicate initial INVITE ignored", call_id);
+            Log::sip()->warn("[{}] duplicate INVITE (call already exists)", call_id);
             return PJ_FALSE;
         }
 
-        // verify INVITE
         unsigned options = 0;
         pjsip_tx_data* verify_response = nullptr;
 
         pj_status_t status =
             pjsip_inv_verify_request(rdata, &options, nullptr, nullptr, self.endpoint_, &verify_response);
         if (status != PJ_SUCCESS) {
-            Log::sip()->warn("[{}] INVITE verification failed: {}", call_id, status);
+            Log::sip()->warn("[{}] INVITE verification failed (status={})", call_id, status);
             if (verify_response != nullptr) {
                 if (pjsip_endpt_send_response2(self.endpoint_, rdata, verify_response, nullptr, nullptr) !=
                     PJ_SUCCESS) {
-                    Log::sip()->warn("[{}] failed to send INVITE verification response", call_id);
+                    Log::sip()->warn("[{}] failed to send verification response", call_id);
                 }
             }
             else {
@@ -118,20 +120,22 @@ pj_bool_t SipModule::on_rx_request(pjsip_rx_data* rdata) {
             return PJ_TRUE;
         }
 
-        // create dialog
+        // Create UAS (User Agent Server) dialog from incoming INVITE.
+        // pjsip_dlg_create_uas_and_inc_lock locks the dialog and increments its reference count;
+        // we must call pjsip_dlg_dec_lock() after pjsip_inv_create_uas() to release the lock.
         pjsip_dialog* dlg = nullptr;
         status = pjsip_dlg_create_uas_and_inc_lock(pjsip_ua_instance(), rdata, nullptr, &dlg);
         if (status != PJ_SUCCESS) {
-            Log::sip()->warn("[{}] failed to create UAS dialog: {}", call_id, status);
+            Log::sip()->warn("[{}] failed to create UAS dialog (status={})", call_id, status);
             pjsip_endpt_respond_stateless(self.endpoint_, rdata, kSipInternalError, nullptr, nullptr, nullptr);
             return PJ_TRUE;
         }
 
-        // create invite session
+        // Create INVITE session within the dialog; the inv layer will manage state and send responses.
         pjsip_inv_session* inv = nullptr;
         status = pjsip_inv_create_uas(dlg, rdata, nullptr, options, &inv);
         if (status != PJ_SUCCESS || inv == nullptr) {
-            Log::sip()->warn("[{}] failed to create UAS invite session: {}", call_id, status);
+            Log::sip()->warn("[{}] failed to create UAS inv session (status={})", call_id, status);
             pjsip_endpt_respond(
                 self.endpoint_,
                 &self.mod_,
@@ -145,7 +149,7 @@ pj_bool_t SipModule::on_rx_request(pjsip_rx_data* rdata) {
             return PJ_TRUE;
         }
 
-        // dispatch to call manager
+        Log::sip()->debug("[{}] UAS dialog and inv session created", call_id);
         self.manager_.dispatch(InviteReceived{.inv_ = inv, .rdata_ = rdata}, self.mod_.id);
         pjsip_dlg_dec_lock(dlg);
         return PJ_TRUE;
@@ -156,7 +160,11 @@ pj_bool_t SipModule::on_rx_request(pjsip_rx_data* rdata) {
         if (self.mod_.id >= 0) {
             std::string call_id(rdata->msg_info.cid->id.ptr, static_cast<std::size_t>(rdata->msg_info.cid->id.slen));
             if (auto* session = self.manager_.find(call_id)) {
+                Log::sip()->debug("[{}] BYE received", call_id);
                 session->dispatch(ByeReceived{});
+            }
+            else {
+                Log::sip()->warn("[{}] BYE received for unknown call", call_id);
             }
         }
         return PJ_FALSE;
@@ -167,7 +175,11 @@ pj_bool_t SipModule::on_rx_request(pjsip_rx_data* rdata) {
         if (self.mod_.id >= 0) {
             std::string call_id(rdata->msg_info.cid->id.ptr, static_cast<std::size_t>(rdata->msg_info.cid->id.slen));
             if (auto* session = self.manager_.find(call_id)) {
+                Log::sip()->debug("[{}] CANCEL received", call_id);
                 session->dispatch(CancelReceived{});
+            }
+            else {
+                Log::sip()->warn("[{}] CANCEL received for unknown call", call_id);
             }
         }
         return PJ_FALSE;

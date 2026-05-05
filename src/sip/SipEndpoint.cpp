@@ -72,13 +72,15 @@ SipEndpoint::SipEndpoint(const Settings& settings)
 
     pj_status_t transport_status = pjsip_udp_transport_start(endpt_, &local, &a_name, 1, nullptr);
     if (transport_status != PJ_SUCCESS) {
-        Log::sip()->critical("pjsip_udp_transport_start() failed: {}", transport_status);
+        Log::sip()->critical("pjsip_udp_transport_start() failed with status {}", transport_status);
         std::quick_exit(EXIT_FAILURE);
     }
 
     if (pjsip_endpt_register_module(endpt_, module_.pjmodule()) != PJ_SUCCESS) {
         Log::crash_error("pjsip_endpt_register_module() failed");
     }
+
+    Log::sip()->info("SIP endpoint initialized: {}:{} (public: {})", bind_addr, bind_port, public_addr);
 }
 
 SipEndpoint::~SipEndpoint() {

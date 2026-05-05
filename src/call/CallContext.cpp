@@ -20,10 +20,12 @@ CallContext::CallContext(const InviteReceived& ev, boost::asio::io_context& ioc,
     , public_ip_(settings.get<std::string>(Settings::Path::kSIP_PUBLIC_ADDRESS)) {}
 
 void CallContext::send_trying() {
+    Log::sip()->debug("[{}] sending 100 Trying", call_id_);
     SipResponder::send_trying(inv_, initial_rdata_);
 }
 
 std::optional<SdpParsed> CallContext::parse_sdp(std::string_view sdp_body) {
+    Log::sip()->debug("[{}] parsing remote SDP", call_id_);
     auto result = negotiator_.parse_remote(sdp_body);
     if (!result) {
         return std::nullopt;
@@ -49,15 +51,17 @@ bool CallContext::open_rtp() {
 }
 
 void CallContext::send_ringing() {
+    Log::sip()->debug("[{}] sending 180 Ringing", call_id_);
     SipResponder::send_ringing(inv_);
 }
 
 void CallContext::send_ok() {
+    Log::sip()->debug("[{}] sending 200 OK with SDP", call_id_);
     SipResponder::send_ok(inv_, local_sdp_);
 }
 
 void CallContext::send_reject(int code) {
-    Log::call()->info("[{}] reject {}", call_id_, code);
+    Log::sip()->warn("[{}] rejecting call with {}", call_id_, code);
     if (code == kSipRequestTerminated) {
         SipResponder::send_request_terminated(inv_);
     }
@@ -75,12 +79,13 @@ void CallContext::send_reject(int code) {
 }
 
 void CallContext::close_rtp() {
+    Log::rtp()->debug("[{}] closing RTP session", call_id_);
     rtp_.close();
 }
 
 void CallContext::send_bye_ok() {
     // No-op: inv layer sends 200 OK to BYE when on_rx_request returns PJ_FALSE.
-    Log::call()->debug("[{}] bye_ok (no-op, inv layer handles response)", call_id_);
+    Log::sip()->debug("[{}] BYE handled by inv layer (200 OK auto-sent)", call_id_);
 }
 
 } // namespace SIPI

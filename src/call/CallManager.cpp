@@ -13,24 +13,19 @@ void CallManager::dispatch(const InviteReceived& event, int mod_id) {
         event.rdata_->msg_info.cid->id.ptr,
         static_cast<std::size_t>(event.rdata_->msg_info.cid->id.slen));
 
-    Log::call()->debug("CallManager::dispatch INVITE [{}] - starting", id);
-
     if (sessions_.contains(id)) {
         Log::call()->warn("[{}] duplicate INVITE — ignoring", id);
         return;
     }
 
-    Log::call()->debug("[{}] creating CallSession", id);
     auto session = std::make_unique<CallSession>(event, ioc_, settings_);
-    Log::call()->debug("[{}] CallSession created successfully", id);
 
-    // Store raw pointer for O(1) routing of subsequent callbacks
+    // Store raw pointer in PJSIP mod_data for O(1) callback routing by inv layer.
     // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-constant-array-index)
     event.inv_->mod_data[mod_id] = session.get();
-    Log::call()->debug("[{}] stored session pointer in mod_data", id);
 
     sessions_.emplace(id, std::move(session));
-    Log::call()->debug("[{}] session stored in map", id);
+    Log::call()->info("[{}] new call session created", id);
 }
 
 void CallManager::remove(std::string_view call_id) {
