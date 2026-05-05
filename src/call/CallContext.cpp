@@ -39,12 +39,12 @@ std::optional<SdpParsed> CallContext::parse_sdp(std::string_view sdp_body) {
 bool CallContext::open_rtp() {
     auto port_result = rtp_.open(ioc_, port_min_, port_max_);
     if (!port_result) {
-        Log::app()->warn("[{}] open_rtp() failed", call_id_);
+        Log::rtp()->warn("[{}] open_rtp() failed", call_id_);
         return false;
     }
     uint16_t bound_port = *port_result;
     local_sdp_ = SdpNegotiator::build_local(public_ip_, bound_port);
-    Log::app()->debug("[{}] open_rtp() bound to port {}", call_id_, bound_port);
+    Log::rtp()->debug("[{}] open_rtp() bound to port {}", call_id_, bound_port);
     return true;
 }
 
@@ -57,7 +57,7 @@ void CallContext::send_ok() {
 }
 
 void CallContext::send_reject(int code) {
-    Log::app()->info("[{}] reject {}", call_id_, code);
+    Log::call()->info("[{}] reject {}", call_id_, code);
     if (code == kSipRequestTerminated) {
         SipResponder::send_request_terminated(inv_);
     }
@@ -80,7 +80,7 @@ void CallContext::close_rtp() {
 
 void CallContext::send_bye_ok() {
     // No-op: inv layer sends 200 OK to BYE when on_rx_request returns PJ_FALSE.
-    Log::app()->debug("[{}] bye_ok (no-op, inv layer handles response)", call_id_);
+    Log::call()->debug("[{}] bye_ok (no-op, inv layer handles response)", call_id_);
 }
 
 } // namespace SIPI

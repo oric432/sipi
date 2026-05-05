@@ -42,6 +42,21 @@ inline std::shared_ptr<spdlog::logger> app() {
     return logger;
 }
 
+inline std::shared_ptr<spdlog::logger> sip() {
+    static auto logger = make_sub_logger("sip");
+    return logger;
+}
+
+inline std::shared_ptr<spdlog::logger> rtp() {
+    static auto logger = make_sub_logger("rtp");
+    return logger;
+}
+
+inline std::shared_ptr<spdlog::logger> call() {
+    static auto logger = make_sub_logger("call");
+    return logger;
+}
+
 inline void crash_error(const std::string_view msg) {
     Log::app()->critical(msg);
     std::quick_exit(EXIT_FAILURE);

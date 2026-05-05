@@ -87,14 +87,14 @@ pj_bool_t SipModule::on_rx_request(pjsip_rx_data* rdata) {
         }
 
         if (self.mod_.id < 0 || self.endpoint_ == nullptr) {
-            Log::app()->warn("on_rx_request(INVITE): module not ready");
+            Log::sip()->warn("on_rx_request(INVITE): module not ready");
             return PJ_FALSE;
         }
 
         // check if call already exists
         const std::string call_id(rdata->msg_info.cid->id.ptr, static_cast<std::size_t>(rdata->msg_info.cid->id.slen));
         if (self.manager_.find(call_id) != nullptr) {
-            Log::app()->debug("[{}] duplicate initial INVITE ignored", call_id);
+            Log::sip()->debug("[{}] duplicate initial INVITE ignored", call_id);
             return PJ_FALSE;
         }
 
@@ -105,11 +105,11 @@ pj_bool_t SipModule::on_rx_request(pjsip_rx_data* rdata) {
         pj_status_t status =
             pjsip_inv_verify_request(rdata, &options, nullptr, nullptr, self.endpoint_, &verify_response);
         if (status != PJ_SUCCESS) {
-            Log::app()->warn("[{}] INVITE verification failed: {}", call_id, status);
+            Log::sip()->warn("[{}] INVITE verification failed: {}", call_id, status);
             if (verify_response != nullptr) {
                 if (pjsip_endpt_send_response2(self.endpoint_, rdata, verify_response, nullptr, nullptr) !=
                     PJ_SUCCESS) {
-                    Log::app()->warn("[{}] failed to send INVITE verification response", call_id);
+                    Log::sip()->warn("[{}] failed to send INVITE verification response", call_id);
                 }
             }
             else {
@@ -122,7 +122,7 @@ pj_bool_t SipModule::on_rx_request(pjsip_rx_data* rdata) {
         pjsip_dialog* dlg = nullptr;
         status = pjsip_dlg_create_uas_and_inc_lock(pjsip_ua_instance(), rdata, nullptr, &dlg);
         if (status != PJ_SUCCESS) {
-            Log::app()->warn("[{}] failed to create UAS dialog: {}", call_id, status);
+            Log::sip()->warn("[{}] failed to create UAS dialog: {}", call_id, status);
             pjsip_endpt_respond_stateless(self.endpoint_, rdata, kSipInternalError, nullptr, nullptr, nullptr);
             return PJ_TRUE;
         }
@@ -131,7 +131,7 @@ pj_bool_t SipModule::on_rx_request(pjsip_rx_data* rdata) {
         pjsip_inv_session* inv = nullptr;
         status = pjsip_inv_create_uas(dlg, rdata, nullptr, options, &inv);
         if (status != PJ_SUCCESS || inv == nullptr) {
-            Log::app()->warn("[{}] failed to create UAS invite session: {}", call_id, status);
+            Log::sip()->warn("[{}] failed to create UAS invite session: {}", call_id, status);
             pjsip_endpt_respond(
                 self.endpoint_,
                 &self.mod_,
