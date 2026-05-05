@@ -31,14 +31,14 @@ include(${CMAKE_SOURCE_DIR}/third_party/catch2.cmake)
 add_executable(sipi
     src/main.cpp
     src/Settings.cpp
-    src/SipModule.cpp
-    src/SipEndpoint.cpp
-    src/CallSession.cpp
-    src/CallContext.cpp
-    src/CallManager.cpp
-    src/SipResponder.cpp
-    src/SdpNegotiator.cpp
-    src/RtpSession.cpp
+    src/call/CallSession.cpp
+    src/call/CallContext.cpp
+    src/call/CallManager.cpp
+    src/sip/SipModule.cpp
+    src/sip/SipEndpoint.cpp
+    src/sip/SipResponder.cpp
+    src/sip/SdpNegotiator.cpp
+    src/rtp/RtpSession.cpp
 )
 
 target_precompile_headers(sipi PRIVATE
@@ -47,6 +47,9 @@ target_precompile_headers(sipi PRIVATE
 
 target_include_directories(sipi PRIVATE
     ${CMAKE_SOURCE_DIR}/src
+    ${CMAKE_SOURCE_DIR}/src/call
+    ${CMAKE_SOURCE_DIR}/src/sip
+    ${CMAKE_SOURCE_DIR}/src/rtp
 )
 
 target_link_libraries(sipi PRIVATE
