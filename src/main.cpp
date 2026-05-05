@@ -12,6 +12,8 @@ int main() {
         Log::crash_error(std::format("Failed to load settings: {}", res.error().what()));
     }
 
+    Log::app()->info("Loaded settings:\n{}\n", res->dump());
+
     Log::set_log_level(res->get<std::string>(Settings::Path::kLOG_LEVEL));
 
     SipEndpoint endpoint{*res};
