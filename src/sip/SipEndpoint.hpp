@@ -27,10 +27,13 @@ public:
 private:
     boost::asio::io_context ioc_;
     const Settings& settings_;
+
     pj_caching_pool cp_{};
     pjsip_endpoint* endpt_{};
+
     CallManager manager_;
     SipModule module_;
+
     std::thread asio_thread_;
     std::atomic<bool> quit_{false};
 };

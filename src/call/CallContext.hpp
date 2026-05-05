@@ -28,9 +28,11 @@ private:
     pjsip_inv_session* inv_;
     pjsip_rx_data* initial_rdata_;
     std::string call_id_;
+
     SdpNegotiator negotiator_;
     RtpSession rtp_;
     boost::asio::io_context& ioc_;
+
     std::string local_sdp_;
     uint16_t port_min_;
     uint16_t port_max_;

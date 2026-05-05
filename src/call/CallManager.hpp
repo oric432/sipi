@@ -22,8 +22,11 @@ public:
     CallSession* find(std::string_view call_id);
 
 private:
+    // NOLINTBEGIN(cppcoreguidelines-avoid-const-or-ref-data-members)
     boost::asio::io_context& ioc_;
     const Settings& settings_;
+    // NOLINTEND(cppcoreguidelines-avoid-const-or-ref-data-members)
+
     std::unordered_map<std::string, std::unique_ptr<CallSession>> sessions_;
 };
 

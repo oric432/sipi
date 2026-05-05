@@ -29,7 +29,9 @@ private:
     static void on_inv_media_update(pjsip_inv_session* inv, pj_status_t status);
 
     CallManager& manager_;
+
     pjsip_endpoint* endpoint_{};
+
     std::string name_{"sipi-module"};
     pjsip_module mod_{};
 };

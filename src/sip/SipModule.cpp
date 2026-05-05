@@ -45,13 +45,12 @@ pjsip_inv_callback SipModule::inv_callbacks() {
     return cb;
 }
 
-void SipModule::on_inv_state_changed(pjsip_inv_session* inv, pjsip_event* e) {
+void SipModule::on_inv_state_changed(pjsip_inv_session* inv, pjsip_event* /* ev */) {
     if (g_module == nullptr || g_module->mod_.id < 0) {
         return;
     }
 
     auto& self = *g_module;
-    (void)e;
     // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-constant-array-index)
     auto* session = static_cast<CallSession*>(inv->mod_data[self.mod_.id]);
     if (session == nullptr) {

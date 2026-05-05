@@ -73,17 +73,17 @@ struct CallStateMachine {
 
         // clang-format off
         return make_transition_table(
-            *state<Idle>          + event<InviteReceived> [is_valid_invite] / invite_action           = state<IncomingInvite>,
-            state<IncomingInvite> + event<SdpParsed>      [valid_sdp]       / open_rtp_action         = state<Trying>,
-            state<IncomingInvite> + event<SdpParsed>      [invalid_sdp]     / reject_action           = state<Failed>,
-            state<IncomingInvite> + event<SdpRejected>                      / reject_action           = state<Failed>,
-            state<Trying>         + event<RtpReady>                          / answer_action           = state<Answered>,
-            state<Trying>         + event<TransportError>                    / reject_transport_action = state<Failed>,
-            state<Answered>       + event<AckReceived>                                                 = state<Confirmed>,
-            state<Answered>       + event<CancelReceived>                    / cancel_action           = state<Terminating>,
-            state<Confirmed>      + event<ByeReceived>                       / bye_action              = state<Terminating>,
-            state<Confirmed>      + event<CancelReceived>                    / cancel_action           = state<Terminating>,
-            state<Terminating>                                                                         = X
+            *state<Idle>          + (event<InviteReceived> [is_valid_invite] / invite_action)           = state<IncomingInvite>,
+            state<IncomingInvite> + (event<SdpParsed>      [valid_sdp]       / open_rtp_action)         = state<Trying>,
+            state<IncomingInvite> + (event<SdpParsed>      [invalid_sdp]     / reject_action)           = state<Failed>,
+            state<IncomingInvite> + (event<SdpRejected>                      / reject_action)           = state<Failed>,
+            state<Trying>         + (event<RtpReady>                         / answer_action)           = state<Answered>,
+            state<Trying>         + (event<TransportError>                   / reject_transport_action) = state<Failed>,
+            state<Answered>       + event<AckReceived>                                                   = state<Confirmed>,
+            state<Answered>       + (event<CancelReceived>                   / cancel_action)           = state<Terminating>,
+            state<Confirmed>      + (event<ByeReceived>                      / bye_action)              = state<Terminating>,
+            state<Confirmed>      + (event<CancelReceived>                   / cancel_action)           = state<Terminating>,
+            state<Terminating>                                                                           = X
         );
         // clang-format on
     }

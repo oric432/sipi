@@ -56,13 +56,14 @@ void RtpSession::start_receive() {
             RtpCpp::RtpPacket<std::span<uint8_t>> pkt{view};
             if (pkt.parse(bytes) == RtpCpp::Result::kSuccess && on_packet_) {
                 const auto& hdr = pkt.get_header();
-                on_packet_(ReceivedRtp{
-                    .remote_ip_ = remote_ep_.address().to_string(),
-                    .remote_port_ = remote_ep_.port(),
-                    .seq_ = hdr.sequence_number_,
-                    .ts_ = hdr.timestamp_,
-                    .payload_size_ = static_cast<std::size_t>(pkt.get_payload_size()),
-                });
+                on_packet_(
+                    ReceivedRtp{
+                        .remote_ip_ = remote_ep_.address().to_string(),
+                        .remote_port_ = remote_ep_.port(),
+                        .seq_ = hdr.sequence_number_,
+                        .ts_ = hdr.timestamp_,
+                        .payload_size_ = static_cast<std::size_t>(pkt.get_payload_size()),
+                    });
             }
             ++total_packets_;
             start_receive();

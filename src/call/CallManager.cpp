@@ -4,11 +4,9 @@
 
 namespace SIPI {
 
-// NOLINTBEGIN(cppcoreguidelines-avoid-const-or-ref-data-members)
 CallManager::CallManager(boost::asio::io_context& ioc, const Settings& settings)
     : ioc_(ioc)
     , settings_(settings) {}
-// NOLINTEND(cppcoreguidelines-avoid-const-or-ref-data-members)
 
 void CallManager::dispatch(const InviteReceived& event, int mod_id) {
     const std::string id(
