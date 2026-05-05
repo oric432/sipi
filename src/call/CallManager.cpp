@@ -29,8 +29,9 @@ void CallManager::dispatch(const InviteReceived& event, int mod_id) {
 }
 
 void CallManager::remove(std::string_view call_id) {
-    if (sessions_.erase(std::string(call_id)) > 0) {
-        Log::call()->info("[{}] call removed", call_id);
+    const std::string id{call_id};
+    if (sessions_.erase(id) > 0) {
+        Log::call()->info("[{}] call removed", id);
     }
 }
 
