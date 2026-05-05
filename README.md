@@ -196,20 +196,48 @@ Test files:
 
 Each test provides a mock `ICallContext` to isolate the state machine from SIP/RTP I/O.
 
-### Manual Testing
+### Manual Testing with Baresip
 
+Use the provided test script to automate baresip testing:
+
+```bash
+# Single call test (5 seconds)
+./scripts/test_baresip.sh single
+
+# Multiple concurrent calls (3 simultaneous calls, default)
+./scripts/test_baresip.sh multi
+
+# Custom: 5 concurrent calls, 10 seconds each
+./scripts/test_baresip.sh multi --calls 5 --duration 10
+```
+
+The script will:
+1. Launch baresip instances on localhost (ports 5081, 5082, etc.)
+2. Have each call the sipi endpoint automatically
+3. Hold the call for the specified duration
+4. Exit cleanly and show results
+
+**Expected sipi logs**:
+```
+[sip] [192.168.1.x:abcd] INVITE received
+[sip] [call-id] UAS dialog and inv session created
+[sip] [call-id] INVITE confirmed (ACK received)
+[rtp] [call-id] listening on 192.168.1.50:40000
+[rtp] [call-id] received packet, seq=1, ts=160, payload_size=160, total_packets=42
+```
+
+For each concurrent call, you should see:
+- Unique call-id in logs
+- Different RTP ports allocated (40000, 40001, etc.)
+- No crashes or memory errors
+- Clean shutdown on BYE
+
+**Manual testing without script**:
 1. Start sipi: `cd build && ./sipi`
-2. Start a SIP client (e.g., MicroSIP) on the same LAN
+2. Start a SIP client (e.g., MicroSIP or baresip) on the same LAN
 3. Call the sipi endpoint (e.g., `sip:user@192.168.1.50:5060`)
 4. sipi accepts the call, negotiates PCMA, opens RTP socket, and echoes packets back
-5. Check console logs for call flow:
-   ```
-   [sip] [192.168.1.x:abcd] INVITE received
-   [sip] [call-id] UAS dialog and inv session created
-   [sip] [call-id] INVITE confirmed (ACK received)
-   [rtp] [call-id] listening on 192.168.1.50:40000
-   [rtp] [call-id] received packet, seq=1, ts=160, ...
-   ```
+5. Verify audio quality and check console logs
 
 ## Code Organization
 
