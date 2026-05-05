@@ -23,7 +23,7 @@ void on_sigint(int /*sig*/) {
 SipEndpoint::SipEndpoint(const Settings& settings)
     : settings_(settings)
     , manager_(ioc_, settings_)
-    , module_(manager_)
+    , module_(manager_, endpt_)
 {
     if (pj_init() != PJ_SUCCESS) {
         Log::crash_error("pj_init() failed");

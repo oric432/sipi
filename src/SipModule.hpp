@@ -11,7 +11,7 @@ class CallManager;
 
 class SipModule {
 public:
-    explicit SipModule(CallManager& manager);
+    explicit SipModule(CallManager& manager, pjsip_endpoint* endpt);
     pjsip_module*      pjmodule() { return &mod_; }
     [[nodiscard]] static pjsip_inv_callback inv_callbacks();
 
