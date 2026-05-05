@@ -17,6 +17,8 @@ struct Confirmed {};
 struct Terminating {};
 struct Failed {};
 
+// Templated for testing purposes
+// TODO: remove template and use CallContext directly
 template <typename TContext>
 struct CallStateMachine {
     auto operator()() const noexcept {
