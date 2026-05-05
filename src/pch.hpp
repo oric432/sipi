@@ -10,6 +10,8 @@
 #include <string> // IWYU pragma: export
 #include <string_view> // IWYU pragma: export
 #include <vector> // IWYU pragma: export
+#include <csignal> // IWYU pragma: export
+#include <array> // IWYU pragma: export
 
 // Dependencies
 #define TOML_EXCEPTIONS 0

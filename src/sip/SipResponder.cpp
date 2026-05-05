@@ -1,7 +1,5 @@
 #include "SipResponder.hpp"
 
-#include <string>
-
 #include "SipStatusCodes.hpp"
 
 #include <pjmedia/sdp.h>

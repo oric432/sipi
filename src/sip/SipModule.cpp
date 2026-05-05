@@ -1,7 +1,5 @@
 #include "SipModule.hpp"
 
-#include <array>
-
 #include <pjsip/sip_endpoint.h>
 #include <pjsip/sip_dialog.h>
 #include <pjsip/sip_util.h>

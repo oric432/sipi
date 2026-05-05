@@ -1,7 +1,5 @@
 #include "SipEndpoint.hpp"
 
-#include <csignal>
-
 #include <pj/log.h>
 #include <pjlib-util.h>
 #include <pjsip/sip_transaction.h>
