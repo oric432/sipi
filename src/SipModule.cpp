@@ -72,15 +72,18 @@ void on_inv_state_changed(pjsip_inv_session* inv, pjsip_event* e) {
 void on_inv_media_update(pjsip_inv_session* /*inv*/, pj_status_t /*status*/) {}
 } // namespace
 
-SipModule::SipModule(CallManager& manager, pjsip_endpoint* endpt) {
+SipModule::SipModule(CallManager& manager) {
     g_call_manager = &manager;
     g_pjmodule     = &mod_;
-    g_endpoint     = endpt;
 
     mod_.name          = {.ptr = name_.data(), .slen = static_cast<pj_ssize_t>(name_.size())};
     mod_.id            = -1;
     mod_.priority      = PJSIP_MOD_PRIORITY_APPLICATION;
     mod_.on_rx_request = &SipModule::on_rx_request;
+}
+
+void SipModule::set_endpoint(pjsip_endpoint* endpt) {
+    g_endpoint = endpt;
 }
 
 pjsip_inv_callback SipModule::inv_callbacks() {
