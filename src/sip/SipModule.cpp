@@ -75,8 +75,13 @@ void SipModule::on_inv_state_changed(pjsip_inv_session* inv, pjsip_event* /* ev 
 
 void SipModule::on_inv_media_update(pjsip_inv_session* /*inv*/, pj_status_t /*status*/) {}
 
+/*
+ * Callback when incoming requests outside any transactions and any
+ * dialogs are received. We're only interested to hande incoming INVITE
+ * request, and we'll reject any other requests with 500 response.
+ */
+
 pj_bool_t SipModule::on_rx_request(pjsip_rx_data* rdata) {
-    Log::sip()->debug("on_rx_request called for method: {}", rdata->msg_info.msg->line.req.method.name.ptr);
     if (g_module == nullptr) {
         return PJ_FALSE;
     }
@@ -85,110 +90,77 @@ pj_bool_t SipModule::on_rx_request(pjsip_rx_data* rdata) {
     // NOLINTNEXTLINE(cppcoreguidelines-pro-type-union-access)
     const pjsip_method& method = rdata->msg_info.msg->line.req.method;
 
-    // INVITE: create new session
-    if (pjsip_method_cmp(&method, &pjsip_invite_method) == 0) {
-        if (rdata->msg_info.to != nullptr && rdata->msg_info.to->tag.slen > 0) {
-            return PJ_FALSE;
+    // Respond (statelessly) any non-INVITE requests with 500
+    if (method.id != PJSIP_INVITE_METHOD) {
+        if (method.id != PJSIP_ACK_METHOD) {
+            pj_str_t reason = pj_str("SIP UA unable to handle this request");
+            pjsip_endpt_respond_stateless(self.endpoint_, rdata, kSipInternalError, &reason, nullptr, nullptr);
         }
+        return PJ_TRUE;
+    }
 
-        if (self.mod_.id < 0 || self.endpoint_ == nullptr) {
-            Log::sip()->warn("INVITE received but module not ready");
-            return PJ_FALSE;
-        }
+    if (rdata->msg_info.to != nullptr && rdata->msg_info.to->tag.slen > 0) {
+        return PJ_FALSE;
+    }
 
-        const std::string call_id(rdata->msg_info.cid->id.ptr, static_cast<std::size_t>(rdata->msg_info.cid->id.slen));
-        Log::sip()->debug("[{}] INVITE received", call_id);
+    if (self.mod_.id < 0 || self.endpoint_ == nullptr) {
+        Log::sip()->warn("INVITE received but module not ready");
+        return PJ_FALSE;
+    }
 
-        if (self.manager_.find(call_id) != nullptr) {
-            Log::sip()->warn("[{}] duplicate INVITE (call already exists)", call_id);
-            return PJ_FALSE;
-        }
+    const std::string call_id(rdata->msg_info.cid->id.ptr, static_cast<std::size_t>(rdata->msg_info.cid->id.slen));
+    Log::sip()->debug("[{}] INVITE received", call_id);
 
-        unsigned options = 0;
-        pjsip_tx_data* verify_response = nullptr;
+    if (self.manager_.find(call_id) != nullptr) {
+        Log::sip()->warn("[{}] duplicate INVITE (call already exists)", call_id);
+        return PJ_FALSE;
+    }
 
-        pj_status_t status =
-            pjsip_inv_verify_request(rdata, &options, nullptr, nullptr, self.endpoint_, &verify_response);
-        if (status != PJ_SUCCESS) {
-            Log::sip()->warn("[{}] INVITE verification failed (status={})", call_id, status);
-            if (verify_response != nullptr) {
-                if (pjsip_endpt_send_response2(self.endpoint_, rdata, verify_response, nullptr, nullptr) !=
-                    PJ_SUCCESS) {
-                    Log::sip()->warn("[{}] failed to send verification response", call_id);
-                }
+    unsigned options = 0;
+    pjsip_tx_data* verify_response = nullptr;
+
+    // Verify the request - check if we can handle it
+    pj_status_t status = pjsip_inv_verify_request(rdata, &options, nullptr, nullptr, self.endpoint_, &verify_response);
+    if (status != PJ_SUCCESS) {
+        Log::sip()->warn("[{}] INVITE verification failed (status={})", call_id, status);
+        if (verify_response != nullptr) {
+            if (pjsip_endpt_send_response2(self.endpoint_, rdata, verify_response, nullptr, nullptr) != PJ_SUCCESS) {
+                Log::sip()->warn("[{}] failed to send verification response", call_id);
             }
-            else {
-                pjsip_endpt_respond_stateless(self.endpoint_, rdata, kSipInternalError, nullptr, nullptr, nullptr);
-            }
-            return PJ_TRUE;
         }
-
-        // Create UAS (User Agent Server) dialog from incoming INVITE.
-        // pjsip_dlg_create_uas_and_inc_lock locks the dialog and increments its reference count;
-        // we must call pjsip_dlg_dec_lock() after pjsip_inv_create_uas() to release the lock.
-        pjsip_dialog* dlg = nullptr;
-        status = pjsip_dlg_create_uas_and_inc_lock(pjsip_ua_instance(), rdata, nullptr, &dlg);
-        if (status != PJ_SUCCESS) {
-            Log::sip()->warn("[{}] failed to create UAS dialog (status={})", call_id, status);
+        else {
             pjsip_endpt_respond_stateless(self.endpoint_, rdata, kSipInternalError, nullptr, nullptr, nullptr);
-            return PJ_TRUE;
         }
+        return PJ_TRUE;
+    }
 
-        // Create INVITE session within the dialog; the inv layer will manage state and send responses.
-        pjsip_inv_session* inv = nullptr;
-        status = pjsip_inv_create_uas(dlg, rdata, nullptr, options, &inv);
-        if (status != PJ_SUCCESS || inv == nullptr) {
-            Log::sip()->warn("[{}] failed to create UAS inv session (status={})", call_id, status);
-            pjsip_endpt_respond(
-                self.endpoint_,
-                &self.mod_,
-                rdata,
-                kSipInternalError,
-                nullptr,
-                nullptr,
-                nullptr,
-                nullptr);
-            pjsip_dlg_dec_lock(dlg);
-            return PJ_TRUE;
-        }
+    // Create UAS (User Agent Server) dialog from incoming INVITE.
+    // pjsip_dlg_create_uas_and_inc_lock locks the dialog and increments its reference count;
+    // we must call pjsip_dlg_dec_lock() after pjsip_inv_create_uas() to release the lock.
+    pjsip_dialog* dlg = nullptr;
+    status = pjsip_dlg_create_uas_and_inc_lock(pjsip_ua_instance(), rdata, nullptr, &dlg);
+    if (status != PJ_SUCCESS) {
+        Log::sip()->warn("[{}] failed to create UAS dialog (status={})", call_id, status);
+        pjsip_endpt_respond_stateless(self.endpoint_, rdata, kSipInternalError, nullptr, nullptr, nullptr);
+        return PJ_TRUE;
+    }
 
-        Log::sip()->debug("[{}] UAS dialog and inv session created", call_id);
-        self.manager_.dispatch(InviteReceived{.inv_ = inv, .rdata_ = rdata}, self.mod_.id);
+    // Create INVITE session within the dialog; the inv layer will manage state and send responses.
+    pjsip_inv_session* inv = nullptr;
+    status = pjsip_inv_create_uas(dlg, rdata, nullptr, options, &inv);
+    if (status != PJ_SUCCESS || inv == nullptr) {
+        Log::sip()->warn("[{}] failed to create UAS inv session (status={})", call_id, status);
+        pjsip_endpt_respond(self.endpoint_, &self.mod_, rdata, kSipInternalError, nullptr, nullptr, nullptr, nullptr);
         pjsip_dlg_dec_lock(dlg);
         return PJ_TRUE;
     }
 
-    // BYE: dispatch to existing session
-    if (pjsip_method_cmp(&method, &pjsip_bye_method) == 0) {
-        if (self.mod_.id >= 0) {
-            std::string call_id(rdata->msg_info.cid->id.ptr, static_cast<std::size_t>(rdata->msg_info.cid->id.slen));
-            if (auto* session = self.manager_.find(call_id)) {
-                Log::sip()->debug("[{}] BYE received", call_id);
-                session->dispatch(ByeReceived{});
-            }
-            else {
-                Log::sip()->warn("[{}] BYE received for unknown call", call_id);
-            }
-        }
-        return PJ_FALSE;
-    }
+    Log::sip()->debug("[{}] UAS dialog and inv session created", call_id);
+    self.manager_.dispatch(InviteReceived{.inv_ = inv, .rdata_ = rdata}, self.mod_.id);
 
-    // CANCEL: dispatch to existing session
-    if (pjsip_method_cmp(&method, &pjsip_cancel_method) == 0) {
-        if (self.mod_.id >= 0) {
-            std::string call_id(rdata->msg_info.cid->id.ptr, static_cast<std::size_t>(rdata->msg_info.cid->id.slen));
-            if (auto* session = self.manager_.find(call_id)) {
-                Log::sip()->debug("[{}] CANCEL received", call_id);
-                session->dispatch(CancelReceived{});
-            }
-            else {
-                Log::sip()->warn("[{}] CANCEL received for unknown call", call_id);
-            }
-        }
-        return PJ_FALSE;
-    }
-
-    return PJ_FALSE;
+    // Release the dialog lock
+    pjsip_dlg_dec_lock(dlg);
+    return PJ_TRUE;
 }
 
 } // namespace SIPI
