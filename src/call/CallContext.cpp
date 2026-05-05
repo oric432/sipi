@@ -71,8 +71,7 @@ void CallContext::send_reject(int code) {
     else {
         pjsip_tx_data* tdata = nullptr;
         // NOLINTNEXTLINE(cppcoreguidelines-pro-type-cstyle-cast)
-        if (pjsip_inv_answer(inv_, static_cast<unsigned>(code), nullptr, nullptr, &tdata) == PJ_SUCCESS &&
-            tdata != nullptr) {
+        if (pjsip_inv_answer(inv_, code, nullptr, nullptr, &tdata) == PJ_SUCCESS && tdata != nullptr) {
             pjsip_inv_send_msg(inv_, tdata);
         }
     }

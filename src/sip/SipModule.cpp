@@ -1,5 +1,7 @@
 #include "SipModule.hpp"
 
+#include <array>
+
 #include <pjsip/sip_endpoint.h>
 #include <pjsip/sip_dialog.h>
 #include <pjsip/sip_util.h>
@@ -93,7 +95,8 @@ pj_bool_t SipModule::on_rx_request(pjsip_rx_data* rdata) {
     // Respond (statelessly) any non-INVITE requests with 500
     if (method.id != PJSIP_INVITE_METHOD) {
         if (method.id != PJSIP_ACK_METHOD) {
-            pj_str_t reason = pj_str("SIP UA unable to handle this request");
+            auto reason_text = std::to_array("SIP UA unable to handle this request");
+            pj_str_t reason = {.ptr = reason_text.data(), .slen = static_cast<pj_ssize_t>(reason_text.size() - 1)};
             pjsip_endpt_respond_stateless(self.endpoint_, rdata, kSipInternalError, &reason, nullptr, nullptr);
         }
         return PJ_TRUE;
