@@ -39,12 +39,16 @@ SipEndpoint::SipEndpoint(const Settings& settings)
 
     pj_caching_pool_init(&cp_, nullptr, 0);
 
+    // The endpoint is PJSIP's core object: transports, modules, transactions,
+    // dialogs, and INVITE sessions all hang off this pool-backed instance.
     if (pjsip_endpt_create(&cp_.factory, nullptr, &endpt_) != PJ_SUCCESS) {
         Log::crash_error("pjsip_endpt_create() failed");
     }
 
     module_.set_endpoint(endpt_);
 
+    // Low-level PJSIP has explicit layers. The INVITE usage depends on the
+    // transaction and UA layers being installed first.
     if (pjsip_tsx_layer_init_module(endpt_) != PJ_SUCCESS) {
         Log::crash_error("pjsip_tsx_layer_init_module() failed");
     }
@@ -67,6 +71,8 @@ SipEndpoint::SipEndpoint(const Settings& settings)
     pj_sockaddr_in local{};
     pj_sockaddr_in_init(&local, &bind_str, static_cast<pj_uint16_t>(bind_port));
 
+    // a_name is the address PJSIP advertises in SIP headers; it can differ
+    // from the local bind address when testing NAT or loopback setups.
     pjsip_host_port a_name{};
     pj_cstr(&a_name.host, public_addr.c_str());
     a_name.port = static_cast<int>(bind_port);
@@ -109,6 +115,8 @@ void SipEndpoint::run() {
     static constexpr long kEventPollMs = 500;
     while (!quit_.load(std::memory_order_relaxed)) {
         pj_time_val timeout{0, kEventPollMs};
+        // PJSIP owns its own event loop; this pumps SIP timers, retransmits,
+        // and transport reads. RTP runs separately on the Asio io_context.
         pjsip_endpt_handle_events(endpt_, &timeout);
     }
 

@@ -16,6 +16,8 @@
 namespace SIPI {
 
 namespace {
+// PJSIP stores C callbacks in pjsip_module/pjsip_inv_callback, so the static
+// callback entry points need one tiny bridge back to our C++ object.
 // NOLINTNEXTLINE(cppcoreguidelines-avoid-non-const-global-variables)
 SipModule* g_module = nullptr;
 } // namespace
@@ -42,6 +44,8 @@ void SipModule::set_endpoint(pjsip_endpoint* endpt) {
 
 pjsip_inv_callback SipModule::inv_callbacks() {
     pjsip_inv_callback cb{};
+    // These callbacks are global for the INVITE usage, not per-call. Per-call
+    // state is recovered through inv->mod_data[our module id].
     cb.on_state_changed = &SipModule::on_inv_state_changed;
     cb.on_media_update = &SipModule::on_inv_media_update;
     return cb;
@@ -53,6 +57,8 @@ void SipModule::on_inv_state_changed(pjsip_inv_session* inv, pjsip_event* /* ev 
     }
 
     auto& self = *g_module;
+    // mod_data is PJSIP's per-module storage slot on the INVITE session. We
+    // store the owning CallSession there when the call is created.
     // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-constant-array-index)
     auto* session = static_cast<CallSession*>(inv->mod_data[self.mod_.id]);
     if (session == nullptr) {
@@ -77,18 +83,14 @@ void SipModule::on_inv_state_changed(pjsip_inv_session* inv, pjsip_event* /* ev 
 
 void SipModule::on_inv_media_update(pjsip_inv_session* /*inv*/, pj_status_t /*status*/) {}
 
-/*
- * Callback when incoming requests outside any transactions and any
- * dialogs are received. We're only interested to hande incoming INVITE
- * request, and we'll reject any other requests with 500 response.
- */
-
 pj_bool_t SipModule::on_rx_request(pjsip_rx_data* rdata) {
     if (g_module == nullptr) {
         return PJ_FALSE;
     }
 
     auto& self = *g_module;
+    // This callback is for out-of-dialog requests. In-dialog ACK/BYE/etc are
+    // normally consumed by the transaction/dialog/INVITE layers before here.
     // NOLINTNEXTLINE(cppcoreguidelines-pro-type-union-access)
     const pjsip_method& method = rdata->msg_info.msg->line.req.method;
 
@@ -122,7 +124,8 @@ pj_bool_t SipModule::on_rx_request(pjsip_rx_data* rdata) {
     unsigned options = 0;
     pjsip_tx_data* verify_response = nullptr;
 
-    // Verify the request - check if we can handle it
+    // Let the INVITE usage validate required headers, supported methods, and
+    // related protocol details before we create dialog state.
     pj_status_t status = pjsip_inv_verify_request(rdata, &options, nullptr, nullptr, self.endpoint_, &verify_response);
     if (status != PJ_SUCCESS) {
         Log::sip()->warn("[{}] INVITE verification failed (status={})", call_id, status);

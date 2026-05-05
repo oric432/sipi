@@ -16,6 +16,7 @@ Error::Result<RemoteSdp> SdpNegotiator::parse_remote(std::string_view sdp) {
         return std::unexpected(Error::make_error().with_context("SDP parse failed"));
     }
 
+    // Find the audio media section
     pjmedia_sdp_media* audio{};
     for (unsigned i = 0; i < session->media_count; ++i) {
         // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-constant-array-index)
@@ -29,6 +30,7 @@ Error::Result<RemoteSdp> SdpNegotiator::parse_remote(std::string_view sdp) {
         return std::unexpected(Error::make_error().with_context("no audio section in SDP"));
     }
 
+    // Check if PCMA (payload 8) is offered
     bool has_pcma = false;
     for (unsigned i = 0; i < audio->desc.fmt_count; ++i) {
         // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-constant-array-index)
@@ -41,6 +43,7 @@ Error::Result<RemoteSdp> SdpNegotiator::parse_remote(std::string_view sdp) {
         return std::unexpected(Error::make_error().with_context("PCMA (payload 8) not offered"));
     }
 
+    // Get connection address - prefer media specific connection, fallback to session connection
     const pjmedia_sdp_conn* conn = (audio->conn != nullptr) ? audio->conn : session->conn;
     if (conn == nullptr) {
         return std::unexpected(Error::make_error().with_context("no connection address in SDP"));

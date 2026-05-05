@@ -12,6 +12,8 @@ CallContext::CallContext(const InviteReceived& ev, boost::asio::io_context& ioc,
     : inv_(ev.inv_)
     , initial_rdata_(ev.rdata_)
     , call_id_(ev.rdata_->msg_info.cid->id.ptr, static_cast<std::size_t>(ev.rdata_->msg_info.cid->id.slen))
+    // SDP built by the negotiator is handed back to PJSIP, so allocate its
+    // PJ objects from the dialog pool that lives for the call.
     , negotiator_(ev.inv_->dlg->pool)
     , rtp_(call_id_)
     , ioc_(ioc)
