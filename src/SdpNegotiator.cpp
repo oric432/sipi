@@ -3,7 +3,8 @@
 #include <pj/string.h>
 #include <pjmedia/sdp.h>
 
-SdpNegotiator::SdpNegotiator(pj_pool_t* pool) : pool_{pool} {}
+SdpNegotiator::SdpNegotiator(pj_pool_t* pool)
+    : pool_{pool} {}
 
 Error::Result<RemoteSdp> SdpNegotiator::parse_remote(std::string_view sdp) {
     // pjmedia_sdp_parse tokenises the buffer in-place — must be mutable
@@ -45,7 +46,7 @@ Error::Result<RemoteSdp> SdpNegotiator::parse_remote(std::string_view sdp) {
     }
 
     return RemoteSdp{
-        .ip_   = std::string(conn->addr.ptr, static_cast<std::size_t>(conn->addr.slen)),
+        .ip_ = std::string(conn->addr.ptr, static_cast<std::size_t>(conn->addr.slen)),
         .port_ = static_cast<uint16_t>(audio->desc.port),
     };
 }
@@ -59,5 +60,6 @@ std::string SdpNegotiator::build_local(std::string_view local_ip, uint16_t local
         "t=0 0\r\n"
         "m=audio {1} RTP/AVP 8\r\n"
         "a=rtpmap:8 PCMA/8000\r\n",
-        local_ip, local_port);
+        local_ip,
+        local_port);
 }

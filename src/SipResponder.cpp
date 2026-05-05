@@ -30,8 +30,7 @@ void answer_and_send(pjsip_inv_session* inv, int code, const pjmedia_sdp_session
 
 void SipResponder::send_trying(pjsip_inv_session* inv, pjsip_rx_data* rdata) {
     pjsip_tx_data* tdata = nullptr;
-    if (pjsip_inv_initial_answer(inv, rdata, kSipTrying, nullptr, nullptr, &tdata) != PJ_SUCCESS ||
-        tdata == nullptr) {
+    if (pjsip_inv_initial_answer(inv, rdata, kSipTrying, nullptr, nullptr, &tdata) != PJ_SUCCESS || tdata == nullptr) {
         Log::app()->warn("SipResponder: inv_initial_answer({}) failed", kSipTrying);
         return;
     }
@@ -47,7 +46,7 @@ void SipResponder::send_ringing(pjsip_inv_session* inv) {
 }
 
 void SipResponder::send_ok(pjsip_inv_session* inv, std::string_view sdp_body) {
-    std::string          mutable_sdp{sdp_body};
+    std::string mutable_sdp{sdp_body};
     pjmedia_sdp_session* session = nullptr;
     if (pjmedia_sdp_parse(inv->dlg->pool, mutable_sdp.data(), mutable_sdp.size(), &session) != PJ_SUCCESS) {
         Log::app()->warn("SipResponder: SDP parse failed, sending 500");

@@ -23,40 +23,34 @@ struct CallStateMachine {
         using namespace boost::sml;
 
         // Guards
-        auto is_valid_invite = [](const InviteReceived& ev) {
-            return ev.inv_ != nullptr;
-        };
-        auto valid_sdp = [](const SdpParsed& ev) {
-            return ev.has_audio_ && ev.supports_pcma_;
-        };
-        auto invalid_sdp = [](const SdpParsed& ev) {
-            return !ev.has_audio_ || !ev.supports_pcma_;
-        };
+        auto is_valid_invite = [](const InviteReceived& ev) { return ev.inv_ != nullptr; };
+        auto valid_sdp = [](const SdpParsed& ev) { return ev.has_audio_ && ev.supports_pcma_; };
+        auto invalid_sdp = [](const SdpParsed& ev) { return !ev.has_audio_ || !ev.supports_pcma_; };
 
         // Actions
-        auto invite_action = [](const InviteReceived& ev, ICallContext& ctx,
-                                back::process<SdpParsed, SdpRejected> process) {
-            ctx.send_trying();
-            std::string_view sdp_body;
-            // NOLINTNEXTLINE(cppcoreguidelines-pro-type-union-access)
-            if (ev.rdata_ && ev.rdata_->msg_info.msg->body &&
-                ev.rdata_->msg_info.msg->body->data) {
-                sdp_body = std::string_view(
-                    static_cast<const char*>(ev.rdata_->msg_info.msg->body->data),
-                    static_cast<std::size_t>(ev.rdata_->msg_info.msg->body->len));
-            }
-            if (auto result = ctx.parse_sdp(sdp_body)) {
-                process(*result);
-            } else {
-                process(SdpRejected{});
-            }
-        };
+        auto invite_action =
+            [](const InviteReceived& ev, ICallContext& ctx, back::process<SdpParsed, SdpRejected> process) {
+                ctx.send_trying();
+                std::string_view sdp_body;
+                // NOLINTNEXTLINE(cppcoreguidelines-pro-type-union-access)
+                if (ev.rdata_ && ev.rdata_->msg_info.msg->body && ev.rdata_->msg_info.msg->body->data) {
+                    sdp_body = std::string_view(
+                        static_cast<const char*>(ev.rdata_->msg_info.msg->body->data),
+                        static_cast<std::size_t>(ev.rdata_->msg_info.msg->body->len));
+                }
+                if (auto result = ctx.parse_sdp(sdp_body)) {
+                    process(*result);
+                }
+                else {
+                    process(SdpRejected{});
+                }
+            };
 
-        auto open_rtp_action = [](ICallContext& ctx,
-                                   back::process<RtpReady, TransportError> process) {
+        auto open_rtp_action = [](ICallContext& ctx, back::process<RtpReady, TransportError> process) {
             if (ctx.open_rtp()) {
                 process(RtpReady{});
-            } else {
+            }
+            else {
                 process(TransportError{});
             }
         };
@@ -66,22 +60,16 @@ struct CallStateMachine {
             ctx.send_ok();
         };
 
-        auto reject_action = [](ICallContext& ctx) {
-            ctx.send_reject(kSipNotAcceptableHere);
-        };
+        auto reject_action = [](ICallContext& ctx) { ctx.send_reject(kSipNotAcceptableHere); };
 
-        auto reject_transport_action = [](ICallContext& ctx) {
-            ctx.send_reject(kSipInternalError);
-        };
+        auto reject_transport_action = [](ICallContext& ctx) { ctx.send_reject(kSipInternalError); };
 
         auto bye_action = [](ICallContext& ctx) {
             ctx.close_rtp();
             ctx.send_bye_ok();
         };
 
-        auto cancel_action = [](ICallContext& ctx) {
-            ctx.close_rtp();
-        };
+        auto cancel_action = [](ICallContext& ctx) { ctx.close_rtp(); };
 
         // clang-format off
         return make_transition_table(

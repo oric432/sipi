@@ -15,18 +15,17 @@ namespace SIPI {
 
 class CallSession {
 public:
-    explicit CallSession(const InviteReceived& event, boost::asio::io_context& ioc,
-                         const Settings& settings);
+    explicit CallSession(const InviteReceived& event, boost::asio::io_context& ioc, const Settings& settings);
     ~CallSession() = default;
 
-    CallSession(const CallSession&)            = delete;
-    CallSession(CallSession&&)                 = delete;
+    CallSession(const CallSession&) = delete;
+    CallSession(CallSession&&) = delete;
     CallSession& operator=(const CallSession&) = delete;
-    CallSession& operator=(CallSession&&)      = delete;
+    CallSession& operator=(CallSession&&) = delete;
 
     [[nodiscard]] const std::string& call_id() const { return call_id_; }
 
-    template<typename E>
+    template <typename E>
     void dispatch(const E& event) {
         sm_.process_event(event);
     }

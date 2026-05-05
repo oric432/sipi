@@ -24,8 +24,7 @@ void on_sigint(int /*sig*/) {
 SipEndpoint::SipEndpoint(const Settings& settings)
     : settings_(settings)
     , manager_(ioc_, settings_)
-    , module_(manager_)
-{
+    , module_(manager_) {
     if (pj_init() != PJ_SUCCESS) {
         Log::crash_error("pj_init() failed");
     }
@@ -55,8 +54,8 @@ SipEndpoint::SipEndpoint(const Settings& settings)
         Log::crash_error("pjsip_inv_usage_init() failed");
     }
 
-    const auto bind_addr   = settings.get<std::string>(Settings::Path::kSIP_BIND_ADDRESS);
-    const auto bind_port   = settings.get<int64_t>(Settings::Path::kSIP_BIND_PORT);
+    const auto bind_addr = settings.get<std::string>(Settings::Path::kSIP_BIND_ADDRESS);
+    const auto bind_port = settings.get<int64_t>(Settings::Path::kSIP_BIND_PORT);
     const auto public_addr = settings.get<std::string>(Settings::Path::kSIP_PUBLIC_ADDRESS);
 
     pj_str_t bind_str;

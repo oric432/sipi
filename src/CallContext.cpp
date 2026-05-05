@@ -8,20 +8,16 @@
 
 namespace SIPI {
 
-CallContext::CallContext(const InviteReceived& ev, boost::asio::io_context& ioc,
-                         const Settings& settings)
+CallContext::CallContext(const InviteReceived& ev, boost::asio::io_context& ioc, const Settings& settings)
     : inv_(ev.inv_)
     , initial_rdata_(ev.rdata_)
-    , call_id_(ev.rdata_->msg_info.cid->id.ptr,
-               static_cast<std::size_t>(ev.rdata_->msg_info.cid->id.slen))
+    , call_id_(ev.rdata_->msg_info.cid->id.ptr, static_cast<std::size_t>(ev.rdata_->msg_info.cid->id.slen))
     , negotiator_(ev.inv_->dlg->pool)
     , rtp_(call_id_)
     , ioc_(ioc)
     , port_min_(static_cast<uint16_t>(settings.get<int64_t>(Settings::Path::kRTP_PORT_MIN)))
     , port_max_(static_cast<uint16_t>(settings.get<int64_t>(Settings::Path::kRTP_PORT_MAX)))
-    , public_ip_(settings.get<std::string>(Settings::Path::kSIP_PUBLIC_ADDRESS))
-{
-}
+    , public_ip_(settings.get<std::string>(Settings::Path::kSIP_PUBLIC_ADDRESS)) {}
 
 void CallContext::send_trying() {
     SipResponder::send_trying(inv_, initial_rdata_);
@@ -64,12 +60,15 @@ void CallContext::send_reject(int code) {
     Log::app()->info("[{}] reject {}", call_id_, code);
     if (code == kSipRequestTerminated) {
         SipResponder::send_request_terminated(inv_);
-    } else if (code == kSipNotAcceptableHere) {
+    }
+    else if (code == kSipNotAcceptableHere) {
         SipResponder::send_not_acceptable(inv_);
-    } else {
+    }
+    else {
         pjsip_tx_data* tdata = nullptr;
         // NOLINTNEXTLINE(cppcoreguidelines-pro-type-cstyle-cast)
-        if (pjsip_inv_answer(inv_, static_cast<unsigned>(code), nullptr, nullptr, &tdata) == PJ_SUCCESS && tdata != nullptr) {
+        if (pjsip_inv_answer(inv_, static_cast<unsigned>(code), nullptr, nullptr, &tdata) == PJ_SUCCESS &&
+            tdata != nullptr) {
             pjsip_inv_send_msg(inv_, tdata);
         }
     }

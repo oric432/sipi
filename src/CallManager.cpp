@@ -6,14 +6,14 @@ namespace SIPI {
 
 // NOLINTBEGIN(cppcoreguidelines-avoid-const-or-ref-data-members)
 CallManager::CallManager(boost::asio::io_context& ioc, const Settings& settings)
-    : ioc_(ioc), settings_(settings)
-{
-}
+    : ioc_(ioc)
+    , settings_(settings) {}
 // NOLINTEND(cppcoreguidelines-avoid-const-or-ref-data-members)
 
 void CallManager::dispatch(const InviteReceived& event, int mod_id) {
-    const std::string id(event.rdata_->msg_info.cid->id.ptr,
-                         static_cast<std::size_t>(event.rdata_->msg_info.cid->id.slen));
+    const std::string id(
+        event.rdata_->msg_info.cid->id.ptr,
+        static_cast<std::size_t>(event.rdata_->msg_info.cid->id.slen));
 
     Log::app()->debug("CallManager::dispatch INVITE [{}] - starting", id);
 

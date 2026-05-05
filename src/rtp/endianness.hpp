@@ -30,8 +30,8 @@ static constexpr uint32_t swap_ulong(uint32_t bytes) {
 #elif __cplusplus >= 202302L
     return std::byteswap(bytes)
 #else
-    return ((bytes & 0xFF'00'00'00) >> 24) | ((bytes & 0x00'FF'00'00) >> 8) |
-           ((bytes & 0x00'00'FF'00) << 8) | ((bytes & 0x00'00'00'FF) << 24);
+    return ((bytes & 0xFF'00'00'00) >> 24) | ((bytes & 0x00'FF'00'00) >> 8) | ((bytes & 0x00'00'FF'00) << 8) |
+           ((bytes & 0x00'00'00'FF) << 24);
 #endif
 }
 
@@ -43,19 +43,15 @@ static constexpr uint64_t swap_uint64(uint64_t bytes) {
 #elif __cplusplus >= 202302L
     return std::byteswap(bytes)
 #else
-    return ((bytes & 0xFF'00'00'00'00'00'00'00ULL) >> 56) |
-           ((bytes & 0x00'FF'00'00'00'00'00'00ULL) >> 40) |
-           ((bytes & 0x00'00'FF'00'00'00'00'00ULL) >> 24) |
-           ((bytes & 0x00'00'00'FF'00'00'00'00ULL) >> 8) |
-           ((bytes & 0x00'00'00'00'FF'00'00'00ULL) << 8) |
-           ((bytes & 0x00'00'00'00'00'FF'00'00ULL) << 24) |
+    return ((bytes & 0xFF'00'00'00'00'00'00'00ULL) >> 56) | ((bytes & 0x00'FF'00'00'00'00'00'00ULL) >> 40) |
+           ((bytes & 0x00'00'FF'00'00'00'00'00ULL) >> 24) | ((bytes & 0x00'00'00'FF'00'00'00'00ULL) >> 8) |
+           ((bytes & 0x00'00'00'00'FF'00'00'00ULL) << 8) | ((bytes & 0x00'00'00'00'00'FF'00'00ULL) << 24) |
            ((bytes & 0x00'00'00'00'00'00'FF'00ULL) << 40);
 #endif
 }
 
 template <typename T>
-concept UintType = ::std::same_as<T, uint16_t> || ::std::same_as<T, uint32_t> ||
-                   ::std::same_as<T, uint64_t>;
+concept UintType = ::std::same_as<T, uint16_t> || ::std::same_as<T, uint32_t> || ::std::same_as<T, uint64_t>;
 
 
 template <::std::same_as<uint8_t> T>
