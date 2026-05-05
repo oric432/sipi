@@ -70,9 +70,17 @@ void SipModule::on_inv_state_changed(pjsip_inv_session* inv, pjsip_event* /* ev 
     }
 
     if (inv->state == PJSIP_INV_STATE_DISCONNECTED) {
-        Log::sip()->info("[{}] call terminated (BYE or timeout)", session->call_id());
-        // Dispatch BYE to state machine so it can transition out cleanly
-        session->dispatch(ByeReceived{});
+        if (inv->cancelling) {
+            Log::sip()->info("[{}] call cancelled", session->call_id());
+            session->dispatch(CancelReceived{});
+        } else {
+            Log::sip()->info("[{}] call terminated (BYE or timeout)", session->call_id());
+            session->dispatch(ByeReceived{});
+        }
+        // SipModule is the PJSIP lifecycle adapter. Cleanup runs here because
+        // PJSIP's DISCONNECTED signal is the authoritative "dialog is gone"
+        // notification. Calling after dispatch() is safe: sm_.process_event()
+        // has already returned before this line.
         // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-constant-array-index)
         inv->mod_data[self.mod_.id] = nullptr;
         self.manager_.remove(session->call_id());

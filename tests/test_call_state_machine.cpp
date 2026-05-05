@@ -28,7 +28,7 @@ struct MockCallContext {
 
     void send_trying() { ++trying_count_; }
 
-    std::optional<SdpParsed> parse_sdp(std::string_view /*body*/) { return sdp_result_; }
+    std::optional<SdpParsed> parse_sdp() { return sdp_result_; }
 
     bool open_rtp() { return rtp_result_; }
     void send_ringing() { ++ringing_count_; }
@@ -158,3 +158,8 @@ TEST_CASE("null inv pointer stays in Idle", "[csm]") {
     CHECK(smach.is(InIdle{}));
     CHECK(ctx.trying_count_ == 0);
 }
+
+// NOTE: CancelReceived transitions from IncomingInvite and Trying are not
+// unit-testable with the synchronous process_queue: those states are
+// transient and never externally observable. The transitions exist in the
+// table for correctness when/if RTP dispatch becomes async.

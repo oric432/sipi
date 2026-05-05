@@ -30,16 +30,9 @@ struct CallStateMachine {
 
         // Actions
         auto invite_action =
-            [](const InviteReceived& ev, TContext& ctx, back::process<SdpParsed, SdpRejected> process) {
+            [](const InviteReceived& /*ev*/, TContext& ctx, back::process<SdpParsed, SdpRejected> process) {
                 ctx.send_trying();
-                std::string_view sdp_body;
-                // NOLINTNEXTLINE(cppcoreguidelines-pro-type-union-access)
-                if (ev.rdata_ && ev.rdata_->msg_info.msg->body && ev.rdata_->msg_info.msg->body->data) {
-                    sdp_body = std::string_view(
-                        static_cast<const char*>(ev.rdata_->msg_info.msg->body->data),
-                        static_cast<std::size_t>(ev.rdata_->msg_info.msg->body->len));
-                }
-                if (auto result = ctx.parse_sdp(sdp_body)) {
+                if (auto result = ctx.parse_sdp()) {
                     process(*result);
                 }
                 else {
@@ -78,8 +71,10 @@ struct CallStateMachine {
             state<IncomingInvite> + (event<SdpParsed>      [valid_sdp]       / open_rtp_action)         = state<Trying>,
             state<IncomingInvite> + (event<SdpParsed>      [invalid_sdp]     / reject_action)           = state<Failed>,
             state<IncomingInvite> + (event<SdpRejected>                      / reject_action)           = state<Failed>,
+            state<IncomingInvite> + (event<CancelReceived>                   / cancel_action)           = state<Terminating>,
             state<Trying>         + (event<RtpReady>                         / answer_action)           = state<Answered>,
             state<Trying>         + (event<TransportError>                   / reject_transport_action) = state<Failed>,
+            state<Trying>         + (event<CancelReceived>                   / cancel_action)           = state<Terminating>,
             state<Answered>       + event<AckReceived>                                                   = state<Confirmed>,
             state<Answered>       + (event<CancelReceived>                   / cancel_action)           = state<Terminating>,
             state<Confirmed>      + (event<ByeReceived>                      / bye_action)              = state<Terminating>,

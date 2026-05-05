@@ -16,7 +16,7 @@ public:
     explicit CallContext(const InviteReceived& ev, boost::asio::io_context& ioc, const Settings& settings);
 
     void send_trying();
-    std::optional<SdpParsed> parse_sdp(std::string_view sdp_body);
+    std::optional<SdpParsed> parse_sdp();
     bool open_rtp();
     void send_ringing();
     void send_ok();
@@ -25,6 +25,8 @@ public:
     void send_bye_ok();
 
 private:
+    std::string_view extract_sdp_body() const;
+
     pjsip_inv_session* inv_;
     pjsip_rx_data* initial_rdata_;
     std::string call_id_;
