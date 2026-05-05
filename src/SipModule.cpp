@@ -108,6 +108,7 @@ pj_bool_t SipModule::on_rx_request(pjsip_rx_data* rdata) {
         pjsip_inv_session* inv = nullptr;
         pj_status_t status = PJ_SUCCESS;
 
+        // Create dialog - let PJSIP extract contact from To header (safer than explicit URI)
         status = pjsip_dlg_create_uas_and_inc_lock(pjsip_ua_instance(), rdata, nullptr, &dlg);
         if (status != PJ_SUCCESS) {
             Log::app()->warn("pjsip_dlg_create_uas_and_inc_lock() failed: {}", status);
