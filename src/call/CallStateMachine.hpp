@@ -1,7 +1,5 @@
 #pragma once
 
-#include <string_view>
-
 #include <boost/sml.hpp>
 
 #include "Events.hpp"
