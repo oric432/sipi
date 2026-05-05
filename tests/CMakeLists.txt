@@ -15,6 +15,7 @@ target_include_directories(sipi_tests PRIVATE
 
 target_link_libraries(sipi_tests PRIVATE
     Catch2::Catch2WithMain
+    spdlog::spdlog_header_only
     pjsip_all
     Boost::asio
     Boost::system

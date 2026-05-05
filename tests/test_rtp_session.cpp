@@ -1,6 +1,7 @@
 #include <catch2/catch_test_macros.hpp>
 
 #include <chrono>
+#include <functional>
 #include <boost/asio.hpp>
 
 #include "RtpSession.hpp"
@@ -36,41 +37,70 @@ TEST_CASE("open: binds to a port in [port_min, port_max] and returns it", "[rtp]
     CHECK(sess.port() == result.value());
 }
 
-TEST_CASE("recv: handler receives correct seq, ts, and payload_size", "[rtp]") {
+TEST_CASE("recv: echoes valid RTP back to sender", "[rtp]") {
     using namespace boost::asio::ip;
     boost::asio::io_context ioc;
 
-    ReceivedRtp captured{};
-    RtpSession sess{"test-call", [&](const ReceivedRtp& r) { captured = r; }};
+    RtpSession sess{"test-call"};
 
     auto result = sess.open(ioc, kPortMin, kPortMax);
     REQUIRE(result.has_value());
 
     udp::socket sender{ioc, udp::v4()};
     udp::endpoint dest{address_v4::loopback(), result.value()};
+    udp::endpoint echoed_from;
+    std::array<uint8_t, 1500> echoed_buf{};
+    boost::system::error_code receive_ec;
+    std::size_t echoed_bytes = 0;
 
     auto buf = make_rtp(/*seq=*/42, /*ts=*/8000, /*payload_bytes=*/100);
+    sender.async_receive_from(
+        boost::asio::buffer(echoed_buf),
+        echoed_from,
+        [&](boost::system::error_code ec, std::size_t bytes) {
+            receive_ec = ec;
+            echoed_bytes = bytes;
+        });
     sender.send_to(boost::asio::buffer(buf), dest);
 
     ioc.run_for(std::chrono::milliseconds{200});
 
-    CHECK(captured.seq_ == 42);
-    CHECK(captured.ts_ == 8000);
-    CHECK(captured.payload_size_ == 100);
+    REQUIRE_FALSE(receive_ec);
+    REQUIRE(echoed_bytes == buf.size());
+    CHECK(echoed_from.port() == result.value());
+    CHECK(std::equal(buf.begin(), buf.end(), echoed_buf.begin()));
 }
 
-TEST_CASE("recv: handler called for each received packet", "[rtp]") {
+TEST_CASE("recv: echoes each valid RTP packet", "[rtp]") {
     using namespace boost::asio::ip;
     boost::asio::io_context ioc;
 
-    int call_count = 0;
-    RtpSession sess{"test-call", [&](const ReceivedRtp& /*r*/) { ++call_count; }};
+    RtpSession sess{"test-call"};
 
     auto result = sess.open(ioc, kPortMin, kPortMax);
     REQUIRE(result.has_value());
 
     udp::socket sender{ioc, udp::v4()};
     udp::endpoint dest{address_v4::loopback(), result.value()};
+    udp::endpoint echoed_from;
+    std::array<uint8_t, 1500> echoed_buf{};
+    int echo_count = 0;
+
+    std::function<void()> receive_echo;
+    receive_echo = [&] {
+        sender.async_receive_from(
+            boost::asio::buffer(echoed_buf),
+            echoed_from,
+            [&](boost::system::error_code ec, std::size_t /*bytes*/) {
+                if (!ec) {
+                    ++echo_count;
+                    if (echo_count < 3) {
+                        receive_echo();
+                    }
+                }
+            });
+    };
+    receive_echo();
 
     for (int i = 0; i < 3; ++i) {
         auto buf = make_rtp(static_cast<uint16_t>(i), static_cast<uint32_t>(i * 160), 160);
@@ -79,26 +109,42 @@ TEST_CASE("recv: handler called for each received packet", "[rtp]") {
 
     ioc.run_for(std::chrono::milliseconds{200});
 
-    CHECK(call_count == 3);
+    CHECK(echo_count == 3);
 }
 
-TEST_CASE("close: handler not called after session is destroyed", "[rtp]") {
+TEST_CASE("close: no echo after session is destroyed", "[rtp]") {
     using namespace boost::asio::ip;
     boost::asio::io_context ioc;
 
-    int call_count = 0;
+    int echo_count = 0;
+    udp::socket sender{ioc, udp::v4()};
+    udp::endpoint echoed_from;
+    std::array<uint8_t, 1500> echoed_buf{};
+
+    std::function<void()> receive_echo;
+    receive_echo = [&] {
+        sender.async_receive_from(
+            boost::asio::buffer(echoed_buf),
+            echoed_from,
+            [&](boost::system::error_code ec, std::size_t /*bytes*/) {
+                if (!ec) {
+                    ++echo_count;
+                    receive_echo();
+                }
+            });
+    };
+    receive_echo();
 
     {
-        RtpSession sess{"test-call", [&](const ReceivedRtp& /*r*/) { ++call_count; }};
+        RtpSession sess{"test-call"};
         auto result = sess.open(ioc, kPortMin, kPortMax);
         REQUIRE(result.has_value());
 
-        udp::socket sender{ioc, udp::v4()};
         udp::endpoint dest{address_v4::loopback(), result.value()};
 
         sender.send_to(boost::asio::buffer(make_rtp(1, 160, 160)), dest);
         ioc.run_for(std::chrono::milliseconds{100});
-        REQUIRE(call_count == 1);
+        REQUIRE(echo_count == 1);
 
         // Send a second packet while the session is still alive, then let it go
         // out of scope — close() via destructor must cancel the pending recv
@@ -106,7 +152,8 @@ TEST_CASE("close: handler not called after session is destroyed", "[rtp]") {
     }  // ~RtpSession calls close()
 
     // Process the cancelled operation; handler must NOT fire
+    ioc.restart();
     ioc.run_for(std::chrono::milliseconds{50});
 
-    CHECK(call_count == 1);
+    CHECK(echo_count == 1);
 }

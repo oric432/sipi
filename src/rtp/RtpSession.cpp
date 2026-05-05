@@ -1,12 +1,11 @@
 #include "RtpSession.hpp"
 
-#include <span>
+#include "utils/log.hpp"
 
-#include "rtp/RtpPacket.hpp"
+using namespace SIPI;
 
-RtpSession::RtpSession(std::string call_id, PacketHandler on_packet)
-    : call_id_{std::move(call_id)}
-    , on_packet_{std::move(on_packet)} {}
+RtpSession::RtpSession(std::string call_id)
+    : call_id_{std::move(call_id)} {}
 
 RtpSession::~RtpSession() {
     close();
@@ -46,28 +45,40 @@ uint16_t RtpSession::port() const {
 void RtpSession::start_receive() {
     // Async RTP packet receive loop: each completion handler re-arms itself for the next packet.
     // Runs on the Asio thread; errors are silently dropped (network noise, closed socket).
+
     socket_->async_receive_from(
         boost::asio::buffer(recv_buf_),
         remote_ep_,
         [this](boost::system::error_code ec, std::size_t bytes) {
-            if (ec) {
+            if (ec == boost::asio::error::operation_aborted) {
                 return;
             }
 
-            std::span<uint8_t> view{recv_buf_.data(), bytes};
-            RtpCpp::RtpPacket<std::span<uint8_t>> pkt{view};
-            if (pkt.parse(bytes) == RtpCpp::Result::kSuccess && on_packet_) {
-                const auto& hdr = pkt.get_header();
-                on_packet_(
-                    ReceivedRtp{
-                        .remote_ip_ = remote_ep_.address().to_string(),
-                        .remote_port_ = remote_ep_.port(),
-                        .seq_ = hdr.sequence_number_,
-                        .ts_ = hdr.timestamp_,
-                        .payload_size_ = static_cast<std::size_t>(pkt.get_payload_size()),
-                    });
+            if (ec) {
+                Log::rtp()->warn("receive_from() failed: {}", ec.message());
+                return;
             }
-            ++total_packets_;
+
+            Log::rtp()->trace("received {} bytes from {}", bytes, remote_ep_.address().to_string());
+
+            auto echoed_packet = std::make_shared<std::vector<uint8_t>>(recv_buf_.begin(), recv_buf_.begin() + bytes);
+            auto sender_ep = std::make_shared<boost::asio::ip::udp::endpoint>(remote_ep_);
+            socket_->async_send_to(
+                boost::asio::buffer(*echoed_packet),
+                *sender_ep,
+                [echoed_packet, sender_ep](boost::system::error_code send_ec, std::size_t sent_bytes) {
+                    if (send_ec == boost::asio::error::operation_aborted) {
+                        return;
+                    }
+
+                    if (send_ec) {
+                        Log::rtp()->warn("send_to() failed: {}", send_ec.message());
+                        return;
+                    }
+
+                    Log::rtp()->trace("sent {} bytes to {}", sent_bytes, sender_ep->address().to_string());
+                });
+
             start_receive();
         });
 }

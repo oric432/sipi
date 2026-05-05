@@ -4,6 +4,7 @@
 #include <thread>
 
 #include <boost/asio/io_context.hpp>
+#include <boost/asio/executor_work_guard.hpp>
 
 #include "CallManager.hpp"
 #include "Settings.hpp"
@@ -26,6 +27,7 @@ public:
 
 private:
     boost::asio::io_context ioc_;
+    boost::asio::executor_work_guard<boost::asio::io_context::executor_type> work_guard_;
     const Settings& settings_;
 
     pj_caching_pool cp_{};

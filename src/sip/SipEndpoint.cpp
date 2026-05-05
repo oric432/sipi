@@ -23,7 +23,8 @@ void on_sigint(int /*sig*/) {
 } // namespace
 
 SipEndpoint::SipEndpoint(const Settings& settings)
-    : settings_(settings)
+    : work_guard_(ioc_.get_executor())
+    , settings_(settings)
     , manager_(ioc_, settings_)
     , module_(manager_) {
     if (pj_init() != PJ_SUCCESS) {
@@ -116,6 +117,7 @@ void SipEndpoint::run() {
 
 void SipEndpoint::stop() {
     quit_.store(true, std::memory_order_relaxed);
+    work_guard_.reset();
     ioc_.stop();
 }
 
