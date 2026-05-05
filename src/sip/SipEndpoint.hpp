@@ -34,7 +34,7 @@ private:
     CallManager manager_;
     SipModule module_;
 
-    std::thread asio_thread_;
+    std::jthread asio_thread_;
     std::atomic<bool> quit_{false};
 };
 

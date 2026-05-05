@@ -80,13 +80,12 @@ SipEndpoint::SipEndpoint(const Settings& settings)
 
 SipEndpoint::~SipEndpoint() {
     stop();
-    if (asio_thread_.joinable()) {
-        asio_thread_.join();
-    }
+
     if (endpt_ != nullptr) {
         pjsip_endpt_destroy(endpt_);
         endpt_ = nullptr;
     }
+
     pj_caching_pool_destroy(&cp_);
     pj_shutdown();
 }
@@ -97,7 +96,7 @@ void SipEndpoint::run() {
         Log::crash_error("std::signal() failed");
     }
 
-    asio_thread_ = std::thread([this] { ioc_.run(); });
+    asio_thread_ = std::jthread([this] { ioc_.run(); });
 
     Log::app()->info("SIP endpoint ready");
 
