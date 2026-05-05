@@ -63,8 +63,10 @@ SipEndpoint::SipEndpoint(const Settings& settings)
     pj_cstr(&a_name.host, public_addr.c_str());
     a_name.port = static_cast<int>(bind_port);
 
-    if (pjsip_udp_transport_start(endpt_, &local, &a_name, 1, nullptr) != PJ_SUCCESS) {
-        Log::crash_error("pjsip_udp_transport_start() failed");
+    pj_status_t transport_status = pjsip_udp_transport_start(endpt_, &local, &a_name, 1, nullptr);
+    if (transport_status != PJ_SUCCESS) {
+        Log::app()->critical("pjsip_udp_transport_start() failed: {}", transport_status);
+        std::quick_exit(EXIT_FAILURE);
     }
 
     if (pjsip_endpt_register_module(endpt_, module_.pjmodule()) != PJ_SUCCESS) {
