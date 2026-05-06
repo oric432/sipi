@@ -18,10 +18,9 @@ class CallManager {
 public:
     explicit CallManager(boost::asio::io_context& ioc, const Settings& settings);
 
-    void on_new_call(pjsip_inv_session* inv, pjsip_rx_data* rdata, int mod_id);
+    void on_incoming_invite(pjsip_rx_data* rdata, pjsip_endpoint* endpt, int mod_id);
     CallSession* find(std::string_view call_id);
     CallSession* find(pjsip_inv_session* inv, int mod_id);
-    void dispatch(pjsip_inv_session* inv, int mod_id, const InviteReceived& event);
     void dispatch(pjsip_inv_session* inv, int mod_id, const AckReceived& event);
     void dispatch(pjsip_inv_session* inv, int mod_id, const CancelReceived& event);
     void dispatch(pjsip_inv_session* inv, int mod_id, const CallDisconnected& event);

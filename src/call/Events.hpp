@@ -5,10 +5,16 @@
 
 #include <pjsip_ua.h>
 
-struct InviteReceived {
-    pjsip_inv_session* inv_;
+// First event: raw INVITE before PJSIP dialog/inv session creation
+struct IncomingInvite {
     pjsip_rx_data* rdata_;
+    pjsip_endpoint* endpoint_;
+    int mod_id_;
 };
+
+// Internal events posted by state machine actions
+struct SetupOk {};      // Dialog + inv session created successfully
+struct SetupFailed {}; // INVITE verification or dialog/inv creation failed
 
 struct SdpParsed {
     std::string remote_ip_;

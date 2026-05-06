@@ -10,10 +10,27 @@ CallManager::CallManager(boost::asio::io_context& ioc, const Settings& settings)
     : ioc_(ioc)
     , settings_(settings) {}
 
-void CallManager::on_new_call(pjsip_inv_session* inv, pjsip_rx_data* rdata, int mod_id) {
+void CallManager::on_incoming_invite(pjsip_rx_data* rdata, pjsip_endpoint* endpt, int mod_id) {
     const std::string id(rdata->msg_info.cid->id.ptr, static_cast<std::size_t>(rdata->msg_info.cid->id.slen));
 
-    auto session = std::make_unique<CallSession>(InviteReceived{.inv_ = inv, .rdata_ = rdata}, ioc_, settings_);
+    // Check for duplicate INVITE
+    if (find(id) != nullptr) {
+        Log::call()->warn("[{}] duplicate INVITE, ignoring", id);
+        return;
+    }
+
+    // Create session with raw INVITE data — SM will create PJSIP dialog/inv on first event
+    auto session = std::make_unique<CallSession>(
+        IncomingInvite{.rdata_ = rdata, .endpoint_ = endpt, .mod_id_ = mod_id},
+        ioc_, settings_);
+
+    // By now, SM has processed the IncomingInvite and queued events (SetupOk/SetupFailed, SdpParsed, etc.)
+    // Only register with PJSIP if dialog/inv session was created successfully
+    auto* inv = session->inv();
+    if (inv == nullptr) {
+        // Setup failed: SM already sent error response. Discard session.
+        return;
+    }
 
     // Store raw pointer in PJSIP mod_data for O(1) callback routing by inv layer.
     // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-constant-array-index)
@@ -34,13 +51,6 @@ CallSession* CallManager::find(pjsip_inv_session* inv, int mod_id) {
     }
     // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-constant-array-index)
     return static_cast<CallSession*>(inv->mod_data[mod_id]);
-}
-
-void CallManager::dispatch(pjsip_inv_session* inv, int mod_id, const InviteReceived& event) {
-    auto* session = find(inv, mod_id);
-    if (session != nullptr) {
-        session->dispatch(event);
-    }
 }
 
 void CallManager::dispatch(pjsip_inv_session* inv, int mod_id, const AckReceived& event) {

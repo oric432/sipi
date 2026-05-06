@@ -38,7 +38,7 @@ struct CallStateLogger {
 
 class CallSession {
 public:
-    explicit CallSession(const InviteReceived& event, boost::asio::io_context& ioc, const Settings& settings);
+    explicit CallSession(const IncomingInvite& event, boost::asio::io_context& ioc, const Settings& settings);
     ~CallSession() = default;
 
     CallSession(const CallSession&) = delete;
@@ -47,6 +47,7 @@ public:
     CallSession& operator=(CallSession&&) = delete;
 
     [[nodiscard]] const std::string& call_id() const { return call_id_; }
+    [[nodiscard]] pjsip_inv_session* inv() const { return ctx_.inv(); }
 
     template <typename E>
     void dispatch(const E& event) {

@@ -4,7 +4,7 @@
 
 namespace SIPI {
 
-CallSession::CallSession(const InviteReceived& event, boost::asio::io_context& ioc, const Settings& settings)
+CallSession::CallSession(const IncomingInvite& event, boost::asio::io_context& ioc, const Settings& settings)
     : call_id_(event.rdata_->msg_info.cid->id.ptr, static_cast<std::size_t>(event.rdata_->msg_info.cid->id.slen))
     , ctx_(event, ioc, settings)
     , sm_(ctx_, logger_) {
