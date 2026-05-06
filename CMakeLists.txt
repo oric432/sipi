@@ -40,7 +40,6 @@ add_executable(sipi
     src/call/CallContext.cpp
     src/call/CallManager.cpp
     src/sip/SipModule.cpp
-    src/sip/SipRouter.cpp
     src/sip/SipEndpoint.cpp
     src/sip/SipResponder.cpp
     src/sip/SdpNegotiator.cpp

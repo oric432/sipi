@@ -1,6 +1,6 @@
 #include "SipModule.hpp"
 
-#include "SipRouter.hpp"
+#include "CallManager.hpp"
 
 namespace SIPI {
 
@@ -11,8 +11,8 @@ namespace {
 SipModule* g_module = nullptr;
 } // namespace
 
-SipModule::SipModule(SipRouter& router)
-    : router_(router) {
+SipModule::SipModule(CallManager& manager)
+    : manager_(manager) {
     g_module = this;
 
     mod_.name = {.ptr = name_.data(), .slen = static_cast<pj_ssize_t>(name_.size())};
@@ -38,7 +38,7 @@ void SipModule::on_inv_state_changed(pjsip_inv_session* inv, pjsip_event* /* ev 
     if (g_module == nullptr || g_module->mod_.id < 0) {
         return;
     }
-    g_module->router_.on_inv_state_changed(inv, g_module->mod_.id);
+    g_module->manager_.on_inv_state_changed(inv, g_module->mod_.id);
 }
 
 void SipModule::on_inv_media_update(pjsip_inv_session* /*inv*/, pj_status_t /*status*/) {}
@@ -47,7 +47,8 @@ pj_bool_t SipModule::on_rx_request(pjsip_rx_data* rdata) {
     if (g_module == nullptr || g_module->mod_.id < 0) {
         return PJ_FALSE;
     }
-    return g_module->router_.on_request(rdata, g_module->mod_.id);
+    g_module->manager_.on_incoming_invite(rdata, nullptr, g_module->mod_.id);
+    return PJ_TRUE;
 }
 
 } // namespace SIPI

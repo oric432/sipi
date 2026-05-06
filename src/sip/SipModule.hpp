@@ -7,11 +7,11 @@
 
 namespace SIPI {
 
-class SipRouter;
+class CallManager;
 
 class SipModule {
 public:
-    explicit SipModule(SipRouter& router);
+    explicit SipModule(CallManager& manager);
     ~SipModule();
 
     SipModule(const SipModule&) = delete;
@@ -28,7 +28,7 @@ private:
     static void on_inv_media_update(pjsip_inv_session* inv, pj_status_t status);
 
     // NOLINTBEGIN(cppcoreguidelines-avoid-const-or-ref-data-members)
-    SipRouter& router_;
+    CallManager& manager_;
     // NOLINTEND(cppcoreguidelines-avoid-const-or-ref-data-members)
 
     std::string name_{"sipi-module"};
