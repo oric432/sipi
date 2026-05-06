@@ -20,6 +20,7 @@ public:
     SipModule& operator=(SipModule&&) = delete;
 
     pjsip_module* pjmodule() { return &mod_; }
+    void set_endpoint(pjsip_endpoint* endpt) { endpt_ = endpt; }
     [[nodiscard]] static pjsip_inv_callback inv_callbacks();
 
 private:
@@ -31,6 +32,7 @@ private:
     CallManager& manager_;
     // NOLINTEND(cppcoreguidelines-avoid-const-or-ref-data-members)
 
+    pjsip_endpoint* endpt_{};
     std::string name_{"sipi-module"};
     pjsip_module mod_{};
 };

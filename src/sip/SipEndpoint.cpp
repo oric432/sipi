@@ -43,6 +43,8 @@ SipEndpoint::SipEndpoint(const Settings& settings)
         Log::crash_error("pjsip_endpt_create() failed");
     }
 
+    module_.set_endpoint(endpt_);
+
     // Low-level PJSIP has explicit layers. The INVITE usage depends on the
     // transaction and UA layers being installed first.
     if (pjsip_tsx_layer_init_module(endpt_) != PJ_SUCCESS) {

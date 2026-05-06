@@ -47,7 +47,7 @@ pj_bool_t SipModule::on_rx_request(pjsip_rx_data* rdata) {
     if (g_module == nullptr || g_module->mod_.id < 0) {
         return PJ_FALSE;
     }
-    g_module->manager_.on_incoming_invite(rdata, nullptr, g_module->mod_.id);
+    g_module->manager_.on_incoming_invite(rdata, g_module->endpt_, g_module->mod_.id);
     return PJ_TRUE;
 }
 
