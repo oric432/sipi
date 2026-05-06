@@ -40,6 +40,29 @@ void CallManager::on_incoming_invite(pjsip_rx_data* rdata, pjsip_endpoint* endpt
     Log::call()->info("[{}] new call session created", id);
 }
 
+void CallManager::on_inv_state_changed(pjsip_inv_session* inv, int mod_id) {
+    if (inv == nullptr || mod_id < 0) {
+        return;
+    }
+
+    if (inv->state == PJSIP_INV_STATE_CONFIRMED) {
+        Log::sip()->debug("INVITE confirmed (ACK received)");
+        dispatch(inv, mod_id, AckReceived{});
+        return;
+    }
+
+    if (inv->state == PJSIP_INV_STATE_DISCONNECTED) {
+        if (inv->cancelling != 0) {
+            Log::sip()->info("call cancelled");
+            dispatch(inv, mod_id, CancelReceived{});
+        }
+        else {
+            Log::sip()->info("call disconnected (BYE or timeout)");
+            dispatch(inv, mod_id, CallDisconnected{});
+        }
+    }
+}
+
 CallSession* CallManager::find(std::string_view call_id) {
     auto it = sessions_.find(std::string(call_id));
     return (it != sessions_.end()) ? it->second.get() : nullptr;
