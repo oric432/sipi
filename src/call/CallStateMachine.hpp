@@ -8,8 +8,8 @@
 namespace SIPI {
 
 struct Idle {};
-struct Accepting {};      // Between raw INVITE and dialog creation
-struct DialogCreated {};  // Dialog exists; waiting for SDP (was IncomingInvite)
+struct Accepting {}; // Between raw INVITE and dialog creation
+struct DialogCreated {}; // Dialog exists; waiting for SDP (was IncomingInvite)
 struct Trying {};
 struct Answered {};
 struct Confirmed {};
@@ -28,8 +28,7 @@ struct CallStateMachine {
 
         // Actions
         auto create_uas_action =
-            [](const IncomingInvite& /*ev*/, TContext& ctx,
-               back::process<SetupOk, SetupFailed> process) {
+            [](const IncomingInvite& /*ev*/, TContext& ctx, back::process<SetupOk, SetupFailed> process) {
                 if (ctx.create_uas_invite_session()) {
                     process(SetupOk{});
                 }
@@ -38,16 +37,15 @@ struct CallStateMachine {
                 }
             };
 
-        auto invite_action =
-            [](TContext& ctx, back::process<SdpParsed, SdpRejected> process) {
-                ctx.send_trying();
-                if (auto result = ctx.parse_sdp()) {
-                    process(*result);
-                }
-                else {
-                    process(SdpRejected{});
-                }
-            };
+        auto invite_action = [](TContext& ctx, back::process<SdpParsed, SdpRejected> process) {
+            ctx.send_trying();
+            if (auto result = ctx.parse_sdp()) {
+                process(*result);
+            }
+            else {
+                process(SdpRejected{});
+            }
+        };
 
         auto open_rtp_action = [](TContext& ctx, back::process<RtpReady, TransportError> process) {
             if (ctx.open_rtp()) {

@@ -13,7 +13,7 @@ struct IncomingInvite {
 };
 
 // Internal events posted by state machine actions
-struct SetupOk {};      // Dialog + inv session created successfully
+struct SetupOk {}; // Dialog + inv session created successfully
 struct SetupFailed {}; // INVITE verification or dialog/inv creation failed
 
 struct SdpParsed {

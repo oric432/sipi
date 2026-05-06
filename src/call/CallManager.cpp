@@ -20,9 +20,8 @@ void CallManager::on_incoming_invite(pjsip_rx_data* rdata, pjsip_endpoint* endpt
     }
 
     // Create session with raw INVITE data — SM will create PJSIP dialog/inv on first event
-    auto result = CallSession::make(
-        IncomingInvite{.rdata_ = rdata, .endpoint_ = endpt, .mod_id_ = mod_id},
-        ioc_, settings_);
+    auto result =
+        CallSession::make(IncomingInvite{.rdata_ = rdata, .endpoint_ = endpt, .mod_id_ = mod_id}, ioc_, settings_);
 
     if (!result) {
         // Setup failed: SM already sent error response. Discard session.

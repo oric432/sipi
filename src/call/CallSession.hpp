@@ -2,7 +2,6 @@
 
 #include <memory>
 #include <queue>
-#include <string>
 
 #include <boost/asio/io_context.hpp>
 #include <boost/sml.hpp>
