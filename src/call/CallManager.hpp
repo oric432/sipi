@@ -6,9 +6,9 @@
 #include <unordered_map>
 
 #include <boost/asio/io_context.hpp>
+#include <pjsip.h>
 
 #include "CallSession.hpp"
-#include "Events.hpp"
 #include "Settings.hpp"
 
 namespace SIPI {
@@ -17,7 +17,7 @@ class CallManager {
 public:
     explicit CallManager(boost::asio::io_context& ioc, const Settings& settings);
 
-    void dispatch(const InviteReceived& event, int mod_id);
+    void on_new_call(pjsip_inv_session* inv, pjsip_rx_data* rdata, int mod_id);
     void remove(std::string_view call_id);
     CallSession* find(std::string_view call_id);
 

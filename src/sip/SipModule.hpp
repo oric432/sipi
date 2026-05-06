@@ -7,11 +7,11 @@
 
 namespace SIPI {
 
-class CallManager;
+class SipRouter;
 
 class SipModule {
 public:
-    explicit SipModule(CallManager& manager);
+    explicit SipModule(SipRouter& router);
     ~SipModule();
 
     SipModule(const SipModule&) = delete;
@@ -19,7 +19,6 @@ public:
     SipModule& operator=(const SipModule&) = delete;
     SipModule& operator=(SipModule&&) = delete;
 
-    void set_endpoint(pjsip_endpoint* endpt);
     pjsip_module* pjmodule() { return &mod_; }
     [[nodiscard]] static pjsip_inv_callback inv_callbacks();
 
@@ -28,9 +27,9 @@ private:
     static void on_inv_state_changed(pjsip_inv_session* inv, pjsip_event* ev);
     static void on_inv_media_update(pjsip_inv_session* inv, pj_status_t status);
 
-    CallManager& manager_;
-
-    pjsip_endpoint* endpoint_{};
+    // NOLINTBEGIN(cppcoreguidelines-avoid-const-or-ref-data-members)
+    SipRouter& router_;
+    // NOLINTEND(cppcoreguidelines-avoid-const-or-ref-data-members)
 
     std::string name_{"sipi-module"};
     pjsip_module mod_{};

@@ -9,6 +9,7 @@
 #include "CallManager.hpp"
 #include "Settings.hpp"
 #include "SipModule.hpp"
+#include "SipRouter.hpp"
 
 namespace SIPI {
 
@@ -34,6 +35,7 @@ private:
     pjsip_endpoint* endpt_{};
 
     CallManager manager_;
+    SipRouter router_;
     SipModule module_;
 
     std::jthread asio_thread_;

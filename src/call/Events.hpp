@@ -21,6 +21,7 @@ struct SdpRejected {};
 struct RtpReady {};
 struct AckReceived {};
 struct ByeReceived {};
+struct CallDisconnected {};
 struct CancelReceived {};
 struct TransportError {};
 struct TimeoutExpired {};

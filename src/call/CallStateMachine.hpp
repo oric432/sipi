@@ -61,6 +61,11 @@ struct CallStateMachine {
             ctx.send_bye_ok();
         };
 
+        auto disconnect_action = [](TContext& ctx) {
+            ctx.close_rtp();
+            ctx.send_bye_ok();
+        };
+
         auto cancel_action = [](TContext& ctx) { ctx.close_rtp(); };
 
         // clang-format off
@@ -73,11 +78,14 @@ struct CallStateMachine {
             state<Trying>         + (event<RtpReady>                         / answer_action)           = state<Answered>,
             state<Trying>         + (event<TransportError>                   / reject_transport_action) = state<Failed>,
             state<Trying>         + (event<CancelReceived>                   / cancel_action)           = state<Terminating>,
-            state<Answered>       + event<AckReceived>                                                   = state<Confirmed>,
+            state<Answered>       + event<AckReceived>                                                  = state<Confirmed>,
             state<Answered>       + (event<CancelReceived>                   / cancel_action)           = state<Terminating>,
+            state<Answered>       + (event<CallDisconnected>                 / disconnect_action)       = state<Terminating>,
             state<Confirmed>      + (event<ByeReceived>                      / bye_action)              = state<Terminating>,
+            state<Confirmed>      + (event<CallDisconnected>                 / disconnect_action)       = state<Terminating>,
             state<Confirmed>      + (event<CancelReceived>                   / cancel_action)           = state<Terminating>,
-            state<Terminating>                                                                           = X
+            state<Failed>         + event<CallDisconnected>                                             = X,
+            state<Terminating>                                                                          = X
         );
         // clang-format on
     }

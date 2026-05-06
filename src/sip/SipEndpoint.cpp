@@ -24,7 +24,8 @@ SipEndpoint::SipEndpoint(const Settings& settings)
     : work_guard_(ioc_.get_executor())
     , settings_(settings)
     , manager_(ioc_, settings_)
-    , module_(manager_) {
+    , router_(manager_)
+    , module_(router_) {
     if (pj_init() != PJ_SUCCESS) {
         Log::crash_error("pj_init() failed");
     }
@@ -43,7 +44,7 @@ SipEndpoint::SipEndpoint(const Settings& settings)
         Log::crash_error("pjsip_endpt_create() failed");
     }
 
-    module_.set_endpoint(endpt_);
+    router_.set_endpoint(endpt_);
 
     // Low-level PJSIP has explicit layers. The INVITE usage depends on the
     // transaction and UA layers being installed first.

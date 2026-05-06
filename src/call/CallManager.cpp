@@ -1,5 +1,7 @@
 #include "CallManager.hpp"
 
+#include "CallSession.hpp"
+#include "Events.hpp"
 #include "utils/log.hpp"
 
 namespace SIPI {
@@ -8,21 +10,16 @@ CallManager::CallManager(boost::asio::io_context& ioc, const Settings& settings)
     : ioc_(ioc)
     , settings_(settings) {}
 
-void CallManager::dispatch(const InviteReceived& event, int mod_id) {
+void CallManager::on_new_call(pjsip_inv_session* inv, pjsip_rx_data* rdata, int mod_id) {
     const std::string id(
-        event.rdata_->msg_info.cid->id.ptr,
-        static_cast<std::size_t>(event.rdata_->msg_info.cid->id.slen));
+        rdata->msg_info.cid->id.ptr,
+        static_cast<std::size_t>(rdata->msg_info.cid->id.slen));
 
-    if (sessions_.contains(id)) {
-        Log::call()->warn("[{}] duplicate INVITE — ignoring", id);
-        return;
-    }
-
-    auto session = std::make_unique<CallSession>(event, ioc_, settings_);
+    auto session = std::make_unique<CallSession>(InviteReceived{.inv_ = inv, .rdata_ = rdata}, ioc_, settings_);
 
     // Store raw pointer in PJSIP mod_data for O(1) callback routing by inv layer.
     // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-constant-array-index)
-    event.inv_->mod_data[mod_id] = session.get();
+    inv->mod_data[mod_id] = session.get();
 
     sessions_.emplace(id, std::move(session));
     Log::call()->info("[{}] new call session created", id);
