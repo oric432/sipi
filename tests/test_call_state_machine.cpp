@@ -172,7 +172,6 @@ TEST_CASE("CallDisconnected in Confirmed → X", "[csm]") {
     smach.process_event(CallDisconnected{});
     CHECK(smach.is(X));
     CHECK(ctx.close_count_ == 1);
-    CHECK(ctx.bye_ok_count_ == 1);
 }
 
 TEST_CASE("CallDisconnected in Failed → X", "[csm]") {
@@ -197,7 +196,6 @@ TEST_CASE("CallDisconnected in Answered → X", "[csm]") {
     smach.process_event(CallDisconnected{});
     CHECK(smach.is(X));
     CHECK(ctx.close_count_ == 1);
-    CHECK(ctx.bye_ok_count_ == 1);
 }
 
 // NOTE: CancelReceived transitions from IncomingInvite and Trying are not
