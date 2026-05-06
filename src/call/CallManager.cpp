@@ -11,9 +11,7 @@ CallManager::CallManager(boost::asio::io_context& ioc, const Settings& settings)
     , settings_(settings) {}
 
 void CallManager::on_new_call(pjsip_inv_session* inv, pjsip_rx_data* rdata, int mod_id) {
-    const std::string id(
-        rdata->msg_info.cid->id.ptr,
-        static_cast<std::size_t>(rdata->msg_info.cid->id.slen));
+    const std::string id(rdata->msg_info.cid->id.ptr, static_cast<std::size_t>(rdata->msg_info.cid->id.slen));
 
     auto session = std::make_unique<CallSession>(InviteReceived{.inv_ = inv, .rdata_ = rdata}, ioc_, settings_);
 

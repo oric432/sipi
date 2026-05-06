@@ -29,8 +29,9 @@ void CallContext::send_trying() {
 std::string_view CallContext::extract_sdp_body() const {
     // NOLINTNEXTLINE(cppcoreguidelines-pro-type-union-access)
     if (initial_rdata_ && initial_rdata_->msg_info.msg->body && initial_rdata_->msg_info.msg->body->data) {
-        return {static_cast<const char*>(initial_rdata_->msg_info.msg->body->data),
-                static_cast<std::size_t>(initial_rdata_->msg_info.msg->body->len)};
+        return {
+            static_cast<const char*>(initial_rdata_->msg_info.msg->body->data),
+            static_cast<std::size_t>(initial_rdata_->msg_info.msg->body->len)};
     }
     return {};
 }
