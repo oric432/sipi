@@ -22,9 +22,26 @@ public:
     void on_inv_state_changed(pjsip_inv_session* inv, int mod_id);
     CallSession* find(std::string_view call_id);
     CallSession* find(pjsip_inv_session* inv, int mod_id);
-    void dispatch(pjsip_inv_session* inv, int mod_id, const AckReceived& event);
-    void dispatch(pjsip_inv_session* inv, int mod_id, const CancelReceived& event);
-    void dispatch(pjsip_inv_session* inv, int mod_id, const CallDisconnected& event);
+
+    template <typename Event>
+    void dispatch(pjsip_inv_session* inv, int mod_id, const Event& event) {
+        auto* session = find(inv, mod_id);
+        if (session != nullptr) {
+            session->dispatch(event);
+        }
+    }
+
+    template <>
+    void dispatch<CallDisconnected>(pjsip_inv_session* inv, int mod_id, const CallDisconnected& event) {
+        auto* session = find(inv, mod_id);
+        if (session != nullptr) {
+            session->dispatch(event);
+            // Terminal event: cleanup PJSIP state and remove session.
+            // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-constant-array-index)
+            inv->mod_data[mod_id] = nullptr;
+            remove(session->call_id());
+        }
+    }
 
 private:
     void remove(std::string_view call_id);

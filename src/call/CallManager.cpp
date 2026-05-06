@@ -92,30 +92,6 @@ CallSession* CallManager::find(pjsip_inv_session* inv, int mod_id) {
     return static_cast<CallSession*>(inv->mod_data[mod_id]);
 }
 
-void CallManager::dispatch(pjsip_inv_session* inv, int mod_id, const AckReceived& event) {
-    auto* session = find(inv, mod_id);
-    if (session != nullptr) {
-        session->dispatch(event);
-    }
-}
-
-void CallManager::dispatch(pjsip_inv_session* inv, int mod_id, const CancelReceived& event) {
-    auto* session = find(inv, mod_id);
-    if (session != nullptr) {
-        session->dispatch(event);
-    }
-}
-
-void CallManager::dispatch(pjsip_inv_session* inv, int mod_id, const CallDisconnected& event) {
-    auto* session = find(inv, mod_id);
-    if (session != nullptr) {
-        session->dispatch(event);
-        // Terminal event: cleanup PJSIP state and remove session.
-        // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-constant-array-index)
-        inv->mod_data[mod_id] = nullptr;
-        remove(session->call_id());
-    }
-}
 
 void CallManager::remove(std::string_view call_id) {
     const std::string id{call_id};
