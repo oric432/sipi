@@ -60,8 +60,9 @@ pjsip_level = 1 # 0 - error, 1 - warning, 2 - info, 3 - debug, 4 - trace
 | Component | Responsibility |
 |-----------|-----------------|
 | **SipEndpoint** | PJSIP initialization, UDP transport, event loop, Asio thread spawn |
-| **SipModule** | PJSIP module callbacks (`on_rx_request`, `on_inv_state_changed`), INVITE/BYE dispatch |
-| **CallManager** | Session map (call-id → CallSession), find/create/remove, event dispatch |
+| **SipModule** | Pure callback bridge: forwards PJSIP callbacks to SipRouter (thin wrapper) |
+| **SipRouter** | PJSIP adapter: translates PJSIP data (verify INVITE, create dialog/inv) into domain events; no session lifecycle management |
+| **CallManager** | Session map (call-id → CallSession), session routing and lifecycle, event dispatch |
 | **CallSession** | Per-call state machine and context ownership, event routing |
 | **CallContext** | Concrete ICallContext interface, SDP negotiation, RTP I/O, SIP response sending |
 | **CallStateMachine** | Boost.SML transition table (templated on context), state and event definitions |
@@ -92,9 +93,10 @@ pjsip_level = 1 # 0 - error, 1 - warning, 2 - info, 3 - debug, 4 - trace
 #### Happy Path (INVITE → ACK → RTP → BYE)
 
 1. **Incoming INVITE**:
-   - `SipModule::on_rx_request()` called on PJSIP thread
-   - Create UAS dialog and inv session
-   - Dispatch `InviteReceived` event to state machine
+   - `SipModule::on_rx_request()` called on PJSIP thread (pure callback bridge)
+   - `SipRouter::on_request()` translates to domain layer: verify INVITE, create UAS dialog and inv session
+   - `CallManager::on_new_call()` creates new `CallSession` with `InviteReceived` event
+   - `CallSession` dispatches `InviteReceived` to state machine
 
 2. **Trying state** (parse SDP):
    - Send 100 Trying response
@@ -112,13 +114,16 @@ pjsip_level = 1 # 0 - error, 1 - warning, 2 - info, 3 - debug, 4 - trace
    - Enter Answered state, wait for ACK
 
 5. **ACK received**:
-   - `on_inv_state_changed(PJSIP_INV_STATE_CONFIRMED)` on PJSIP thread
-   - Dispatch `AckReceived` event → Confirmed state
+   - `SipRouter::on_inv_state_changed(PJSIP_INV_STATE_CONFIRMED)` on PJSIP thread
+   - Translates to `AckReceived` event
+   - `CallManager::dispatch()` routes to session → state machine
+   - Enter Confirmed state
    - RTP socket actively receives packets; echoes back to caller
 
 6. **BYE received**:
-   - `on_rx_request(BYE)` on PJSIP thread
-   - Dispatch `ByeReceived` event → Terminating state
+   - `SipRouter::on_request(BYE)` on PJSIP thread
+   - Translates to `ByeReceived` or `CallDisconnected` event
+   - `CallManager::dispatch()` routes to session, terminal event triggers cleanup
    - Close RTP socket, send 200 OK to BYE
    - Delete CallSession
 
@@ -150,9 +155,10 @@ pjsip_level = 1 # 0 - error, 1 - warning, 2 - info, 3 - debug, 4 - trace
 - `SdpParsed` — remote SDP parsed, audio + PCMA confirmed
 - `SdpRejected` — remote SDP missing audio or uses unsupported codec
 - `RtpReady` — RTP socket allocated and bound
-- `AckReceived` — ACK received, call confirmed (from `on_inv_state_changed`)
-- `ByeReceived` — BYE received or call timed out (from `on_inv_state_changed`)
-- `CancelReceived` — CANCEL received
+- `AckReceived` — ACK received, call confirmed (from `SipRouter::on_inv_state_changed`)
+- `ByeReceived` — BYE received explicitly (from `SipRouter::on_request`)
+- `CallDisconnected` — call disconnected (BYE, timeout, etc.) — generic disconnect event (from `SipRouter::on_inv_state_changed`)
+- `CancelReceived` — CANCEL received (from `SipRouter`)
 - `TransportError` — RTP socket allocation failed
 
 **Guards**:
@@ -247,12 +253,13 @@ src/
 ├── Settings.hpp/.cpp          # TOML config parsing
 ├── sip/
 │   ├── SipEndpoint.hpp/.cpp    # PJSIP init, transport, event loop
-│   ├── SipModule.hpp/.cpp      # PJSIP module, INVITE/BYE dispatch
+│   ├── SipModule.hpp/.cpp      # pure callback bridge to SipRouter
+│   ├── SipRouter.hpp/.cpp      # PJSIP adapter: translate → domain events
 │   ├── SipResponder.hpp/.cpp   # response sending
 │   ├── SdpNegotiator.hpp/.cpp  # SDP parsing and generation
 │   └── SipStatusCodes.hpp      # SIP response status codes
 ├── call/
-│   ├── CallManager.hpp/.cpp    # session map, lifecycle
+│   ├── CallManager.hpp/.cpp    # session map, lifecycle, routing
 │   ├── CallSession.hpp/.cpp    # SM wrapper, event dispatch
 │   ├── CallContext.hpp/.cpp    # concrete ICallContext interface
 │   ├── ICallContext.hpp        # abstract interface for SM actions
