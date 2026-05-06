@@ -13,7 +13,6 @@ namespace SIPI {
 CallContext::CallContext(const IncomingInvite& ev, boost::asio::io_context& ioc, const Settings& settings)
     : rdata_(ev.rdata_)
     , endpt_(ev.endpoint_)
-    , mod_id_(ev.mod_id_)
     , rtp_(std::string(ev.rdata_->msg_info.cid->id.ptr, static_cast<std::size_t>(ev.rdata_->msg_info.cid->id.slen)))
     , ioc_(ioc)
     , call_id_(ev.rdata_->msg_info.cid->id.ptr, static_cast<std::size_t>(ev.rdata_->msg_info.cid->id.slen))

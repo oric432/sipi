@@ -22,6 +22,7 @@ public:
 
     // Getter for session's inv pointer (null if setup failed)
     [[nodiscard]] pjsip_inv_session* inv() const { return inv_; }
+    [[nodiscard]] std::string_view call_id() const { return call_id_; }
 
     void send_trying();
     std::optional<SdpParsed> parse_sdp();
@@ -35,12 +36,11 @@ public:
 private:
     std::string_view extract_sdp_body() const;
 
-    pjsip_rx_data* rdata_{};          // Initial request (kept for SDP and send_trying)
-    pjsip_endpoint* endpt_{};         // PJSIP endpoint (for verify and dialog creation)
-    int mod_id_{};                    // Module ID (stored for reference)
-    pjsip_inv_session* inv_{};        // Null until create_uas_invite_session() succeeds
+    pjsip_rx_data* rdata_{}; // Initial request (kept for SDP and send_trying)
+    pjsip_endpoint* endpt_{}; // PJSIP endpoint (for verify and dialog creation)
+    pjsip_inv_session* inv_{}; // Null until create_uas_invite_session() succeeds
 
-    std::optional<SdpNegotiator> negotiator_;  // Emplaced after dialog pool is available
+    std::optional<SdpNegotiator> negotiator_; // Emplaced after dialog pool is available
     RtpSession rtp_;
     boost::asio::io_context& ioc_;
 

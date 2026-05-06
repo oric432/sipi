@@ -40,8 +40,8 @@ struct CallStateLogger {
 
 class CallSession {
 public:
-    [[nodiscard]] static Error::Result<std::unique_ptr<CallSession>> make(
-        const IncomingInvite& event, boost::asio::io_context& ioc, const Settings& settings);
+    [[nodiscard]] static Error::Result<std::unique_ptr<CallSession>>
+    make(const IncomingInvite& event, boost::asio::io_context& ioc, const Settings& settings);
 
     ~CallSession() = default;
 
@@ -50,7 +50,7 @@ public:
     CallSession& operator=(const CallSession&) = delete;
     CallSession& operator=(CallSession&&) = delete;
 
-    [[nodiscard]] const std::string& call_id() const { return call_id_; }
+    [[nodiscard]] std::string_view call_id() const { return ctx_.call_id(); }
     [[nodiscard]] pjsip_inv_session* inv() const { return ctx_.inv(); }
 
     template <typename E>
@@ -61,7 +61,6 @@ public:
 private:
     explicit CallSession(const IncomingInvite& event, boost::asio::io_context& ioc, const Settings& settings);
 
-    std::string call_id_;
     CallContext ctx_;
     CallStateLogger logger_;
     boost::sml::
