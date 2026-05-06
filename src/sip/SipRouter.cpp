@@ -6,7 +6,6 @@
 #include <pjsip/sip_ua_layer.h>
 
 #include "CallManager.hpp"
-#include "CallSession.hpp"
 #include "Events.hpp"
 #include "SipStatusCodes.hpp"
 #include "utils/log.hpp"
@@ -106,38 +105,24 @@ void SipRouter::on_inv_state_changed(pjsip_inv_session* inv, int mod_id) {
         return;
     }
 
-    // mod_data is PJSIP's per-module storage slot on the INVITE session. We
-    // store the owning CallSession there when the call is created.
-    // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-constant-array-index)
-    auto* session = static_cast<CallSession*>(inv->mod_data[mod_id]);
-    if (session == nullptr) {
-        return;
-    }
-
     if (inv->state == PJSIP_INV_STATE_CONFIRMED) {
-        Log::sip()->debug("[{}] INVITE confirmed (ACK received)", session->call_id());
-        session->dispatch(AckReceived{});
+        Log::sip()->debug("INVITE confirmed (ACK received)");
+        manager_.dispatch(inv, mod_id, AckReceived{});
         return;
     }
 
     if (inv->state == PJSIP_INV_STATE_DISCONNECTED) {
         if (inv->cancelling != 0) {
-            Log::sip()->info("[{}] call cancelled", session->call_id());
-            session->dispatch(CancelReceived{});
+            Log::sip()->info("call cancelled");
+            manager_.dispatch(inv, mod_id, CancelReceived{});
         }
         else {
             // Translate generic PJSIP DISCONNECTED (could be BYE, timeout, etc.) to
-            // CallDisconnected event. SM decides how to handle it from current state.
-            Log::sip()->info("[{}] call disconnected (BYE or timeout)", session->call_id());
-            session->dispatch(CallDisconnected{});
+            // CallDisconnected event. CallManager will route to session, dispatch event,
+            // and cleanup mod_data/session lifecycle.
+            Log::sip()->info("call disconnected (BYE or timeout)");
+            manager_.dispatch(inv, mod_id, CallDisconnected{});
         }
-        // SipRouter is the PJSIP lifecycle adapter. Cleanup runs here because
-        // PJSIP's DISCONNECTED signal is the authoritative "dialog is gone"
-        // notification. Calling after dispatch() is safe: sm_.process_event()
-        // has already returned before this line.
-        // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-constant-array-index)
-        inv->mod_data[mod_id] = nullptr;
-        manager_.remove(session->call_id());
     }
 }
 

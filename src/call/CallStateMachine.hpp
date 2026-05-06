@@ -63,7 +63,6 @@ struct CallStateMachine {
 
         auto disconnect_action = [](TContext& ctx) {
             ctx.close_rtp();
-            ctx.send_bye_ok();
         };
 
         auto cancel_action = [](TContext& ctx) { ctx.close_rtp(); };
