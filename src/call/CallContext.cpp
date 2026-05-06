@@ -74,7 +74,8 @@ void CallContext::send_trying() {
 
 std::string_view CallContext::extract_sdp_body() const {
     // NOLINTNEXTLINE(cppcoreguidelines-pro-type-union-access)
-    if (rdata_ && rdata_->msg_info.msg->body && rdata_->msg_info.msg->body->data) {
+    if ((rdata_ != nullptr) && (rdata_->msg_info.msg->body != nullptr) &&
+        (rdata_->msg_info.msg->body->data != nullptr)) {
         return {
             static_cast<const char*>(rdata_->msg_info.msg->body->data),
             static_cast<std::size_t>(rdata_->msg_info.msg->body->len)};
