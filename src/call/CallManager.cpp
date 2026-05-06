@@ -10,13 +10,27 @@ CallManager::CallManager(boost::asio::io_context& ioc, const Settings& settings)
     : ioc_(ioc)
     , settings_(settings) {}
 
-void CallManager::on_incoming_invite(pjsip_rx_data* rdata, pjsip_endpoint* endpt, int mod_id) {
+pj_bool_t CallManager::on_incoming_invite(pjsip_rx_data* rdata, pjsip_endpoint* endpt, int mod_id) {
+    // Verify this is actually an INVITE (not ACK, BYE, CANCEL, etc.)
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-type-union-access)
+    const pjsip_method& method = rdata->msg_info.msg->line.req.method;
+    if (method.id != PJSIP_INVITE_METHOD) {
+        Log::sip()->debug("skipping non-INVITE request");
+        return PJ_FALSE;
+    }
+
+    // In-dialog requests (To tag present) should be handled by inv/dialog layer, not here
+    if (rdata->msg_info.to != nullptr && rdata->msg_info.to->tag.slen > 0) {
+        Log::sip()->debug("skipping in-dialog request (To tag present)");
+        return PJ_FALSE;
+    }
+
     const std::string id(rdata->msg_info.cid->id.ptr, static_cast<std::size_t>(rdata->msg_info.cid->id.slen));
 
     // Check for duplicate INVITE
     if (find(id) != nullptr) {
         Log::call()->warn("[{}] duplicate INVITE, ignoring", id);
-        return;
+        return PJ_TRUE;
     }
 
     // Create session with raw INVITE data — SM will create PJSIP dialog/inv on first event
@@ -26,7 +40,7 @@ void CallManager::on_incoming_invite(pjsip_rx_data* rdata, pjsip_endpoint* endpt
     if (!result) {
         // Setup failed: SM already sent error response. Discard session.
         Log::call()->warn("[{}] CallSession setup failed", id);
-        return;
+        return PJ_TRUE;
     }
 
     auto session = std::move(*result);
@@ -39,6 +53,7 @@ void CallManager::on_incoming_invite(pjsip_rx_data* rdata, pjsip_endpoint* endpt
 
     sessions_.emplace(id, std::move(session));
     Log::call()->info("[{}] new call session created", id);
+    return PJ_TRUE;
 }
 
 void CallManager::on_inv_state_changed(pjsip_inv_session* inv, int mod_id) {
