@@ -21,7 +21,7 @@ public:
     pj_bool_t on_incoming_invite(pjsip_rx_data* rdata, pjsip_endpoint* endpt, int mod_id);
     void on_inv_state_changed(pjsip_inv_session* inv, int mod_id);
     CallSession* find(std::string_view call_id);
-    CallSession* find(pjsip_inv_session* inv, int mod_id);
+    static CallSession* find(pjsip_inv_session* inv, int mod_id);
 
     template <typename Event>
     void dispatch(pjsip_inv_session* inv, int mod_id, const Event& event) {
