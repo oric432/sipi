@@ -20,19 +20,21 @@ void CallManager::on_incoming_invite(pjsip_rx_data* rdata, pjsip_endpoint* endpt
     }
 
     // Create session with raw INVITE data — SM will create PJSIP dialog/inv on first event
-    auto session = std::make_unique<CallSession>(
+    auto result = CallSession::make(
         IncomingInvite{.rdata_ = rdata, .endpoint_ = endpt, .mod_id_ = mod_id},
         ioc_, settings_);
 
-    // By now, SM has processed the IncomingInvite and queued events (SetupOk/SetupFailed, SdpParsed, etc.)
-    // Only register with PJSIP if dialog/inv session was created successfully
-    auto* inv = session->inv();
-    if (inv == nullptr) {
+    if (!result) {
         // Setup failed: SM already sent error response. Discard session.
+        Log::call()->warn("[{}] CallSession setup failed", id);
         return;
     }
 
+    auto session = std::move(*result);
+
+    // By now, SM has processed the IncomingInvite and queued events (SetupOk/SetupFailed, SdpParsed, etc.)
     // Store raw pointer in PJSIP mod_data for O(1) callback routing by inv layer.
+    auto* inv = session->inv();
     // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-constant-array-index)
     inv->mod_data[mod_id] = session.get();
 

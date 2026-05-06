@@ -1,8 +1,24 @@
 #include "CallSession.hpp"
 
+#include "utils/error.hpp"
 #include "utils/log.hpp"
 
 namespace SIPI {
+
+Error::Result<std::unique_ptr<CallSession>> CallSession::make(
+    const IncomingInvite& event,
+    boost::asio::io_context& ioc,
+    const Settings& settings) {
+    auto session = std::unique_ptr<CallSession>(
+        new CallSession(event, ioc, settings));
+
+    if (session->inv() == nullptr) {
+        return std::unexpected(
+            Error::make_error().with_context("CallSession setup failed: inv session not created"));
+    }
+
+    return session;
+}
 
 CallSession::CallSession(const IncomingInvite& event, boost::asio::io_context& ioc, const Settings& settings)
     : call_id_(event.rdata_->msg_info.cid->id.ptr, static_cast<std::size_t>(event.rdata_->msg_info.cid->id.slen))

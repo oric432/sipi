@@ -1,5 +1,6 @@
 #pragma once
 
+#include <memory>
 #include <queue>
 #include <string>
 
@@ -10,6 +11,7 @@
 #include "CallStateMachine.hpp"
 #include "Events.hpp"
 #include "Settings.hpp"
+#include "utils/error.hpp"
 #include "utils/log.hpp"
 
 namespace SIPI {
@@ -38,7 +40,9 @@ struct CallStateLogger {
 
 class CallSession {
 public:
-    explicit CallSession(const IncomingInvite& event, boost::asio::io_context& ioc, const Settings& settings);
+    [[nodiscard]] static Error::Result<std::unique_ptr<CallSession>> make(
+        const IncomingInvite& event, boost::asio::io_context& ioc, const Settings& settings);
+
     ~CallSession() = default;
 
     CallSession(const CallSession&) = delete;
@@ -55,6 +59,8 @@ public:
     }
 
 private:
+    explicit CallSession(const IncomingInvite& event, boost::asio::io_context& ioc, const Settings& settings);
+
     std::string call_id_;
     CallContext ctx_;
     CallStateLogger logger_;
